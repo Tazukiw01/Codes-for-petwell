@@ -1,0 +1,5009 @@
+//// start form 
+   public partial class StartForm : BaseForm
+   {
+       public StartForm()
+       {
+           InitializeComponent();
+       }
+
+       private void StartButton_Click(object sender, EventArgs e)
+       {
+           LoginForm loginForm = new LoginForm();
+           this.Hide();
+           loginForm.Show();
+       }
+
+//// loginForm 
+    public partial class LoginForm : BaseForm
+    {
+
+        private void LogActivity(SqlConnection con, int userId, string activityType, string activityDetails)
+        {
+            string sql = @"
+        INSERT INTO( table name) ;
+    ";
+
+            using (SqlCommand cmd = new SqlCommand(sql, con))
+            {
+               
+                cmd.Parameters.AddWithValue("@UserId", userId);
+                cmd.Parameters.AddWithValue("@ActivityType", activityType);
+                cmd.Parameters.AddWithValue("@ActivityDetails", activityDetails);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private readonly string connStr =
+     @"our server here ";
+
+
+        public LoginForm()
+        {
+            InitializeComponent();
+        }
+
+        private void cbtn_login_Click(object sender, EventArgs e)
+        {
+            string login = txtPhone.Text.Trim();   // Email OR Phone
+            string password = txtPassword.Text.Trim();
+            if (string.IsNullOrWhiteSpace(login) || string.IsNullOrWhiteSpace(password))
+            {
+                MessageBox.Show("Please enter Email/Phone Number and Password.");
+                return;
+            }
+            try
+            {
+                using (SqlConnection con = new SqlConnection(connStr))
+                {
+                    con.Open();
+
+                    string sql = @"
+    SELECT UserId, Role, IsSuperAdmin
+    FROM table name 
+    WHERE (PhoneNumber = @Login OR Email = @Login)
+      AND Password = @Password;
+";
+
+
+                    using (SqlCommand cmd = new SqlCommand(sql, con))
+                    {
+                        cmd.Parameters.AddWithValue("@Login", login);
+                        cmd.Parameters.AddWithValue("@Password", password);
+                       
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            if (!reader.Read())
+                            {
+                                MessageBox.Show("Wrong Email/Phone Number or Password.");
+                                return;
+                            }
+                            int userId = Convert.ToInt32(reader["UserId"]);
+                            string role = reader["Role"].ToString();
+                            bool isSuperAdmin = Convert.ToBoolean(reader["IsSuperAdmin"]);
+                            Session.CurrentUserId = userId;
+                            Session.CurrentRole = role;
+                            Session.IsSuperAdmin = isSuperAdmin;
+
+
+                            reader.Close(); // close reader before next command
+                            string loginType = login.Contains("@") ? "Email" : "Phone";
+                            LogActivity(con, userId, "LOGIN", $"{role} logged in successfully using {loginType}");
+                            this.Hide(); // hide login first
+
+                            Form nextForm;
+                            if (role == "Admin")
+                            {
+                                nextForm = new AdminForm();
+                                nextForm.Show();
+                                return;
+                            }
+                            else if (role == "Reception")
+                            {
+                                nextForm = new ReceptionForm();
+                                nextForm.Show();
+                                return;
+                            }
+                            else if (role == "User")
+                            {
+                                nextForm = new HomePage();
+                                nextForm.Show();
+                                return;
+                            }
+                            else
+                            {
+                                MessageBox.Show("Unknown role in database.");
+                                this.Show();
+                                return;
+                            }
+
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Login error: " + ex.Message);
+            }
+        }
+
+        private void lbl_createAccount_Click(object sender, EventArgs e)
+        {
+            RegisterForm registerForm = new RegisterForm();
+            this.Hide();
+            registerForm.Show();
+        }
+ private void label4_Click(object sender, EventArgs e)
+ {
+
+     ForgotPasswordForm frm = new ForgotPasswordForm();
+     frm.Show();
+     this.Hide();
+ }
+
+//// register form 
+  public partial class RegisterForm : BaseForm
+  
+  {
+      private void UpdateRegisterButtonState()
+      {
+          bool nameOk = !string.IsNullOrWhiteSpace(txtName.Text);
+          bool emailOk = !string.IsNullOrWhiteSpace(txtEmail.Text);
+          bool phoneOk = !string.IsNullOrWhiteSpace(txtPhoneNumber.Text);
+          bool passwordOk = !string.IsNullOrWhiteSpace(txtPassword.Text) && txtPassword.Text.Trim().Length >= 8;
+          bool checkOk = chkAgree.Checked;
+          btnRegister.Enabled = nameOk && emailOk && phoneOk && passwordOk && checkOk;
+      }
+        private bool ValidatePassword(TextBox passwordBox, Label errorLabel)
+        {
+            string password = passwordBox.Text.Trim();
+
+            if (password.Length < 8)
+            {
+                errorLabel.Text = "Password must be at least 8 characters.";
+                errorLabel.ForeColor = Color.Red;
+                errorLabel.Visible = true;
+                return false;
+            }
+
+            errorLabel.Visible = false;
+            return true;
+        }
+        private void txtPassword_TextChanged(object sender, EventArgs e)
+        {
+            UpdateRegisterButtonState();
+            ValidatePassword(txtPassword, lblPasswordError);
+        }
+
+        private readonly string connStr =
+@"Server=.sql server here;";
+
+        public RegisterForm()
+        {
+            InitializeComponent();
+        }
+
+ private bool ValidatePhone(TextBox phoneBox, Label label1)
+ {
+     string phone = phoneBox.Text.Trim();
+
+     if (!System.Text.RegularExpressions.Regex.IsMatch(phone, @"^07\d{8}$"))
+     {
+         label1.Text = "Phone must start with 07 and be exactly 10 digits.";
+         label1.ForeColor = Color.Red;
+         label1.Visible = true;
+         return false;
+     }
+
+     label1.Visible = false;
+     return true;
+ }
+  private void chbTerms_CheckedChanged(object sender, EventArgs e)
+  {
+      UpdateRegisterButtonState();
+  }
+  private void btnRegister_Click(object sender, EventArgs e)
+  {
+      string name = txtName.Text.Trim();
+      string email = txtEmail.Text.Trim();
+      string phone = txtPhoneNumber.Text.Trim();
+      string password = txtPassword.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(name) ||
+          string.IsNullOrWhiteSpace(email) ||
+          string.IsNullOrWhiteSpace(phone) ||
+          string.IsNullOrWhiteSpace(password))
+      {
+          MessageBox.Show("Please fill all fields.");
+          return;
+      }
+
+      try
+      {
+          using (SqlConnection con = new SqlConnection(connStr))
+          {
+              con.Open();
+
+              // 2) Insert user and return new UserId
+              string sql = @"
+          INSERT INTO table name (Name, Email, PhoneNumber, Password, Role)
+          VALUES (@Name, @Email, @PhoneNumber, @Password, 'User');
+
+          SELECT CAST(SCOPE_IDENTITY() AS INT);
+      ";
+
+              int newUserId;
+
+              using (SqlCommand cmd = new SqlCommand(sql, con))
+              {
+                  cmd.Parameters.AddWithValue("@Name", name);
+                  cmd.Parameters.AddWithValue("@Email", email);
+                  cmd.Parameters.AddWithValue("@PhoneNumber", phone);
+                  cmd.Parameters.AddWithValue("@Password", password);
+                  newUserId = (int)cmd.ExecuteScalar();
+              }
+
+              LogActivity(con, newUserId, "REGISTER", "User registered successfully");
+              MessageBox.Show($"Welcome {name}! Account created successfully. Please login.");
+
+              LoginForm login = new LoginForm();
+              login.Show();
+              this.Hide();
+          }
+      }
+      catch (SqlException ex)
+      {
+          if (ex.Number == 2627 || ex.Number == 2601)
+          {
+              MessageBox.Show("Email or Phone Number already exists. Try another.");
+          }
+          else
+          {
+              MessageBox.Show("Register error: " + ex.Message);
+          }
+      }
+      catch (Exception ex)
+      {
+          MessageBox.Show("Register error: " + ex.Message);
+      }
+  }
+
+    private void LogActivity(SqlConnection con, int userId, string activityType, string activityDetails)
+    {
+        string sql = @"
+    INSERT INTO table name (UserId, ActivityType, ActivityDetails)
+    VALUES (@UserId, @ActivityType, @ActivityDetails);
+";
+
+        using (SqlCommand cmd = new SqlCommand(sql, con))
+        {
+            cmd.Parameters.AddWithValue("@UserId", userId);
+            cmd.Parameters.AddWithValue("@ActivityType", activityType);
+            cmd.Parameters.AddWithValue("@ActivityDetails", activityDetails);
+            cmd.ExecuteNonQuery();
+        }
+    }
+ private void txtEmail_TextChanged(object sender, EventArgs e)
+ {
+     UpdateRegisterButtonState();
+ }
+
+  private void checkboxpass_CheckedChanged(object sender, EventArgs e)
+  {
+      txtPassword.UseSystemPasswordChar = !checkboxpass.Checked;
+
+  }
+  private void txtName_TextChanged(object sender, EventArgs e)
+ {
+     UpdateRegisterButtonState();
+ }
+
+
+/////forget password form 
+   public partial class ForgotPasswordForm : BaseForm
+   {
+       private readonly ForgotPasswordRepository _repo = new ForgotPasswordRepository();
+
+       public ForgotPasswordForm()
+       {
+           InitializeComponent();
+           this.Load += ForgotPasswordForm_Load;
+       }
+
+       private void ForgotPasswordForm_Load(object sender, EventArgs e)
+       {
+           txtNewPassword.Visible = false;
+           txtConfirmPassword.Visible = false;
+           btnReset.Visible = false;
+
+           txtNewPassword.UseSystemPasswordChar = true;
+           txtConfirmPassword.UseSystemPasswordChar = true;
+       }
+
+       private void btnVerify_Click(object sender, EventArgs e)
+       {
+           string phoneNumber = txtPhone.Text.Trim();
+
+           if (string.IsNullOrWhiteSpace(phoneNumber))
+           {
+               MessageBox.Show("Please enter your phone number.");
+               return;
+           }
+
+           bool exists = _repo.PhoneExists(phoneNumber);
+
+           if (!exists)
+           {
+               MessageBox.Show("Phone number not found.");
+               return;
+           }
+
+           MessageBox.Show("Phone number verified. You can now reset your password.");
+
+           txtPhone.ReadOnly = true;
+
+           txtNewPassword.Visible = true;
+           txtConfirmPassword.Visible = true;
+           btnReset.Visible = true;
+
+           txtNewPassword.Focus();
+       }
+
+       private void btnReset_Click(object sender, EventArgs e)
+       {
+           string phoneNumber = txtPhone.Text.Trim();
+           string newPassword = txtNewPassword.Text.Trim();
+           string confirmPassword = txtConfirmPassword.Text.Trim();
+
+           if (string.IsNullOrWhiteSpace(newPassword) || string.IsNullOrWhiteSpace(confirmPassword))
+           {
+               MessageBox.Show("Please enter both password fields.");
+               return;
+           }
+
+           if (newPassword != confirmPassword)
+           {
+               MessageBox.Show("Passwords do not match.");
+               return;
+           }
+
+           bool success = _repo.ResetPassword(phoneNumber, newPassword);
+
+           if (success)
+           {
+               MessageBox.Show("Password reset successfully.");
+
+               LoginForm login = new LoginForm();
+               login.Show();
+               this.Hide();
+           }
+           else
+           {
+               MessageBox.Show("Failed to reset password.");
+           }
+       }
+
+       private void btnBack_Click(object sender, EventArgs e)
+       {
+           LoginForm login = new LoginForm();
+           login.Show();
+           this.Hide();
+       }
+
+
+/////admin form 
+
+ public partial class AdminForm : BaseForm
+ {
+         {
+         InitializeComponent();
+        
+     }
+  private void LogOut_Click(object sender, EventArgs e)
+  {
+      DialogResult result = MessageBox.Show("are you sure you want to log out?", "confirm logout",
+          MessageBoxButtons.YesNo,
+          MessageBoxIcon.Question);
+      if (result == DialogResult.Yes)
+      {
+          LoginForm loginForm = new LoginForm();
+          loginForm.Show();
+          this.Close();
+      }
+  }
+
+  private void ManageUsers_Click(object sender, EventArgs e)
+  {
+      ManageUserActivity manageUserActivity = new ManageUserActivity();
+      manageUserActivity.Show();
+      this.Close();
+  }
+
+  private void ManagePets_Click(object sender, EventArgs e)
+  {
+      ManagePetsForm managePetsForm = new ManagePetsForm();
+      managePetsForm.Show();
+      this.Close();
+  }
+
+  private void ManageProducts_Click(object sender, EventArgs e)
+  {
+      ManageProductsActivity manageProductsActivity = new ManageProductsActivity();
+      manageProductsActivity.Show();
+      this.Close();
+  }
+  private void OrderDelivery_Click(object sender, EventArgs e)
+  {
+      OrderDeliveryActivity orderDeliveryActivity = new OrderDeliveryActivity();
+      orderDeliveryActivity.Show();
+      this.Close();
+  }
+ 
+
+  private void btnPetCategories_Click(object sender, EventArgs e)
+  {
+      ManagePetTypesForm managePetTypesForm = new ManagePetTypesForm();
+      managePetTypesForm.Show();
+      this.Close();
+  }
+
+  private void btnPetActivityLogs_Click(object sender, EventArgs e)
+  {ManagePetActivityForm managePetActivityForm = new ManagePetActivityForm();
+      managePetActivityForm.Show();
+      this.Close();
+  }
+
+  private void Reports_Click(object sender, EventArgs e)
+  {
+      ManageReportsForm manageReportsForm = new ManageReportsForm();
+      manageReportsForm.Show();
+      this.Close();
+  }
+}
+
+///// manage user activity form 
+
+namespace PetWell
+{
+    public partial class ManageUserActivity : Form
+    {
+        private readonly string connStr =
+    @"Server=.serverLink;";
+
+
+        private void LoadUsersAndLogs()
+        {
+            try
+            {
+                using (SqlConnection con = new SqlConnection(connStr))
+                {
+                    con.Open();
+                    string usersQuery = @"
+                SELECT 
+                    ROW_NUMBER() OVER (ORDER BY UserId DESC) AS RowNum,
+                    UserId,
+                    Name,
+                    Email,
+                    PhoneNumber,
+                    Password,
+                    Role,
+                    IsSuperAdmin
+                FROM dbo.tableName;
+            ";
+
+                    using (SqlDataAdapter daUsers = new SqlDataAdapter(usersQuery, con))
+                    {
+                        DataTable dtUsers = new DataTable();
+                        daUsers.Fill(dtUsers);
+
+                        dgvUsers.DataSource = dtUsers;
+
+                        dgvUsers.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+                        dgvUsers.MultiSelect = false;
+                        dgvUsers.AllowUserToAddRows = false;
+                        dgvUsers.ReadOnly = true;
+
+                        if (dgvUsers.Columns["Password"] != null)
+                            dgvUsers.Columns["Password"].Visible = false;
+
+                        if (dgvUsers.Columns["IsSuperAdmin"] != null)
+                            dgvUsers.Columns["IsSuperAdmin"].Visible = false;
+
+                        if (dgvUsers.Columns["UserId"] != null)
+                            dgvUsers.Columns["UserId"].Visible = false;
+
+                        if (dgvUsers.Columns["RowNum"] != null)
+                        {
+                            dgvUsers.Columns["RowNum"].HeaderText = "#";
+                            dgvUsers.Columns["RowNum"].DisplayIndex = 0;
+                            dgvUsers.Columns["RowNum"].Width = 50;
+                        }
+
+                        dgvUsers.ClearSelection();
+                    }
+
+                    string logsSql = @"
+                SELECT TOP 200
+                    a.ActivityId,
+                    u.Name,
+                    u.Role,
+                    u.PhoneNumber,
+                    a.ActivityType,
+                    a.ActivityDetails,
+                    a.CreatedAt
+                FROM dbo.tableName a
+                JOIN dbo.Tablename u ON u.UserId = a.UserId
+                ORDER BY a.CreatedAt DESC;
+            ";
+
+                    using (SqlDataAdapter daLogs = new SqlDataAdapter(logsSql, con))
+                    {
+                        DataTable dtLogs = new DataTable();
+                        daLogs.Fill(dtLogs);
+
+                        dgvLogs.DataSource = dtLogs;
+
+                        dgvLogs.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+                        dgvLogs.MultiSelect = false;
+                        dgvLogs.AllowUserToAddRows = false;
+                        dgvLogs.ReadOnly = true;
+
+                        dgvLogs.ClearSelection();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error loading data: " + ex.Message);
+            }
+        }
+
+        public ManageUserActivity()
+        {
+            InitializeComponent();
+           
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+
+            AdminForm adminForm = new AdminForm();
+            adminForm.Show();
+            this.Close();
+        }
+
+  private void btnDeleteUser_Click(object sender, EventArgs e)
+  {
+      if (dgvUsers.CurrentRow == null)
+      {
+          MessageBox.Show("Please select a user to delete.");
+          return;
+      }
+
+      int userId = Convert.ToInt32(dgvUsers.CurrentRow.Cells["UserId"].Value);
+      string role = dgvUsers.CurrentRow.Cells["Role"].Value.ToString();
+      string name = dgvUsers.CurrentRow.Cells["Name"].Value.ToString();
+      string phone = dgvUsers.CurrentRow.Cells["PhoneNumber"].Value.ToString();
+
+      bool selectedIsSuperAdmin = Convert.ToBoolean(dgvUsers.CurrentRow.Cells["IsSuperAdmin"].Value);
+
+      int adminId = Session.CurrentUserId;
+
+      if (userId == adminId)
+      {
+          MessageBox.Show("You cannot delete your own account.", "Denied",
+              MessageBoxButtons.OK, MessageBoxIcon.Warning);
+          return;
+      }
+
+      if (selectedIsSuperAdmin)
+      {
+          MessageBox.Show("You cannot delete the Main Admin account.", "Denied",
+              MessageBoxButtons.OK, MessageBoxIcon.Warning);
+          return;
+      }
+
+      if (!Session.IsSuperAdmin && role == "Admin")
+      {
+          MessageBox.Show("Only the Main Admin can delete Admin accounts.", "Denied",
+              MessageBoxButtons.OK, MessageBoxIcon.Warning);
+          return;
+      }
+
+      DialogResult result = MessageBox.Show(
+          $"Are you sure you want to delete this account?\n\nName: {name}\nPhone: {phone}\nRole: {role}",
+          "Confirm Delete",
+          MessageBoxButtons.YesNo,
+          MessageBoxIcon.Warning);
+
+      if (result != DialogResult.Yes)
+          return;
+
+      try
+      {
+          using (SqlConnection con = new SqlConnection(connStr))
+          {
+              con.Open();
+
+              string deleteLogsSql = @"DELETE FROM dbo.tablename WHERE UserId = @UserId;";
+              using (SqlCommand cmdLogs = new SqlCommand(deleteLogsSql, con))
+              {
+                  cmdLogs.Parameters.AddWithValue("@UserId", userId);
+                  cmdLogs.ExecuteNonQuery();
+              }
+
+              string deleteUserSql = @"DELETE FROM dbo.tablename WHERE UserId = @UserId;";
+              using (SqlCommand cmdUser = new SqlCommand(deleteUserSql, con))
+              {
+                  cmdUser.Parameters.AddWithValue("@UserId", userId);
+                  int rows = cmdUser.ExecuteNonQuery();
+
+                  if (rows == 0)
+                  {
+                      MessageBox.Show("User not found or already deleted.");
+                      return;
+                  }
+              }
+              string logSql = @"
+          INSERT INTO dbo.tablename (UserId, ActivityType, ActivityDetails)
+          VALUES (@AdminId, 'DELETE_USER', @Details);
+      ";
+
+              using (SqlCommand cmdLog = new SqlCommand(logSql, con))
+              {
+                  cmdLog.Parameters.AddWithValue("@AdminId", adminId);
+                  cmdLog.Parameters.AddWithValue("@Details",
+                      $"Admin deleted account: {name} (UserId: {userId}, Phone: {phone}, Role: {role})");
+                  cmdLog.ExecuteNonQuery();
+              }
+          }
+
+          MessageBox.Show("Account deleted successfully.");
+
+          LoadUsersAndLogs();
+      }
+      catch (Exception ex)
+      {
+          MessageBox.Show("Delete error: " + ex.Message);
+      }
+  }
+
+ 
+  private void dgvUsers_CellContentClick(object sender, DataGridViewCellEventArgs e)
+  {
+      if (e.RowIndex < 0) return; // header click
+
+      DataGridViewRow row = dgvUsers.Rows[e.RowIndex];
+
+      int userId = Convert.ToInt32(row.Cells["UserId"].Value);
+      string name = row.Cells["Name"].Value.ToString();
+      string email = row.Cells["Email"].Value.ToString();
+      string phone = row.Cells["PhoneNumber"].Value.ToString();
+      string role = row.Cells["Role"].Value.ToString();
+      lblSelectedUserId.Text = userId.ToString();
+
+      // Fill textboxes
+      txtEditName.Text = name;
+      txtEditEmail.Text = email;
+      txtEditPhoneNumber.Text = phone;
+      cmbEditRole.Text = role;
+
+      if (userId == Session.CurrentUserId)
+      {
+          cmbEditRole.Enabled = false;
+           MessageBox.Show("You cannot change your own role.");
+      }
+      else
+      {
+          cmbEditRole.Enabled = true;
+      }
+
+      // Get password from database (NOT from grid)
+      LoadPasswordForUser(userId);
+  }
+
+  private void LoadPasswordForUser(int userId)
+  {
+      try
+      {
+          using (SqlConnection con = new SqlConnection(connStr))
+          {
+              con.Open();
+
+              string sql = "SELECT Password FROM dbo.tablename WHERE UserId = @UserId;";
+
+              using (SqlCommand cmd = new SqlCommand(sql, con))
+              {
+                  cmd.Parameters.AddWithValue("@UserId", userId);
+
+                  object result = cmd.ExecuteScalar();
+
+                  if (result != null)
+                      txtEditPassword.Text = result.ToString();
+                  else
+                      txtEditPassword.Text = "";
+              }
+          }
+      }
+      catch (Exception ex)
+      {
+          MessageBox.Show("Error loading password: " + ex.Message);
+      }
+  }
+
+
+  private void textBox3_TextChanged(object sender, EventArgs e)
+  {
+      LoadUsers(txtSearchUsers.Text);
+  }
+  private void LoadUsers(string searchText = "")
+  {
+      using (SqlConnection con = new SqlConnection(connStr))
+      {
+          con.Open();
+
+          string usersSql = @"
+      SELECT 
+          ROW_NUMBER() OVER (ORDER BY UserId DESC) AS RowNum,
+          UserId,
+          Name,
+          Email,
+          PhoneNumber,
+          Password,
+          Role,
+          IsSuperAdmin
+      FROM dbo.tableName
+      WHERE 
+          (@Search = '' OR 
+           Name LIKE '%' + @Search + '%' OR
+           Email LIKE '%' + @Search + '%' OR
+           PhoneNumber LIKE '%' + @Search + '%' OR
+           Role LIKE '%' + @Search + '%' OR
+           CAST(UserId AS NVARCHAR) LIKE '%' + @Search + '%')
+      ORDER BY UserId DESC;
+  ";
+
+          using (SqlCommand cmd = new SqlCommand(usersSql, con))
+          {
+              cmd.Parameters.AddWithValue("@Search", searchText.Trim());
+
+              using (SqlDataAdapter daUsers = new SqlDataAdapter(cmd))
+              {
+                  DataTable dtUsers = new DataTable();
+                  daUsers.Fill(dtUsers);
+                  dgvUsers.DataSource = dtUsers;
+              }
+          }
+
+          dgvUsers.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+          dgvUsers.MultiSelect = false;
+          dgvUsers.AllowUserToAddRows = false;
+          dgvUsers.ReadOnly = true;
+          if (dgvUsers.Columns["Password"] != null)
+              dgvUsers.Columns["Password"].Visible = false;
+
+          if (dgvUsers.Columns["IsSuperAdmin"] != null)
+              dgvUsers.Columns["IsSuperAdmin"].Visible = false;
+          if (dgvUsers.Columns["UserId"] != null)
+              dgvUsers.Columns["UserId"].Visible = false;
+          if (dgvUsers.Columns.Contains("RowNum"))
+          {
+              dgvUsers.Columns["RowNum"].HeaderText = "#";
+              dgvUsers.Columns["RowNum"].DisplayIndex = 0;
+              dgvUsers.Columns["RowNum"].Width = 50;
+          }
+
+          dgvUsers.ClearSelection();
+      }
+  }
+
+        private void btnUpdateUser_Click(object sender, EventArgs e)
+        {
+            if (Session.CurrentRole != "Admin")
+            {
+                MessageBox.Show("Only Admin can update users.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(lblSelectedUserId.Text))
+            {
+                MessageBox.Show("Please select a user from the table first.");
+                return;
+            }
+
+            if (!int.TryParse(lblSelectedUserId.Text, out int userId))
+            {
+                MessageBox.Show("Invalid selected UserId. Please select a user again.");
+                return;
+            }
+            if (dgvUsers.CurrentRow == null)
+            {
+                MessageBox.Show("Please select a user from the table first.");
+                return;
+            }
+
+            string selectedRole = dgvUsers.CurrentRow.Cells["Role"].Value.ToString();
+            bool selectedIsSuperAdmin = Convert.ToBoolean(dgvUsers.CurrentRow.Cells["IsSuperAdmin"].Value);
+            if (selectedIsSuperAdmin)
+            {
+                MessageBox.Show("You cannot modify the Main Admin account.", "Denied",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (!Session.IsSuperAdmin && selectedRole == "Admin")
+            {
+                MessageBox.Show("Only the Main Admin can update Admin accounts.", "Denied",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            string newName = txtEditName.Text.Trim();
+            string newEmail = txtEditEmail.Text.Trim();
+            string newPhone = txtEditPhoneNumber.Text.Trim();
+            string newPassword = txtEditPassword.Text.Trim();
+            string newRole = cmbEditRole.Text.Trim();
+
+            // Validate fields
+            if (string.IsNullOrWhiteSpace(newName) ||
+                string.IsNullOrWhiteSpace(newEmail) ||
+                string.IsNullOrWhiteSpace(newPhone) ||
+                string.IsNullOrWhiteSpace(newPassword) ||
+                string.IsNullOrWhiteSpace(newRole))
+            {
+                MessageBox.Show("Please fill all fields.");
+                return;
+            }
+
+if (!Session.IsSuperAdmin && newRole == "Admin")
+            {
+                MessageBox.Show("Only the Main Admin can assign Admin role.", "Denied",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            int adminId = Session.CurrentUserId;
+
+            if (userId == adminId && newRole != "Admin")
+            {
+                MessageBox.Show("You cannot change your own role. This prevents losing admin access.");
+                return;
+            }
+
+            try
+            {
+                using (SqlConnection con = new SqlConnection(connStr))
+                {
+                    con.Open();
+
+                    string updateSql = @"
+                UPDATE dbo.tablename
+                SET Name = @Name,
+                    Email = @Email,
+                    PhoneNumber = @PhoneNumber,
+                    Password = @Password,
+                    Role = @Role
+                WHERE UserId = @UserId;
+            ";
+
+                    using (SqlCommand cmdUpdate = new SqlCommand(updateSql, con))
+                    {
+                        cmdUpdate.Parameters.AddWithValue("@Name", newName);
+                        cmdUpdate.Parameters.AddWithValue("@Email", newEmail);
+                        cmdUpdate.Parameters.AddWithValue("@PhoneNumber", newPhone);
+                        cmdUpdate.Parameters.AddWithValue("@Password", newPassword);
+                        cmdUpdate.Parameters.AddWithValue("@Role", newRole);
+                        cmdUpdate.Parameters.AddWithValue("@UserId", userId);
+
+                        int rows = cmdUpdate.ExecuteNonQuery();
+
+                        if (rows == 0)
+                        {
+                            MessageBox.Show("User not found or already deleted.");
+                            return;
+                        }
+                    }
+
+                    string logSql = @"
+                INSERT INTO dbo.tablename (UserId, ActivityType, ActivityDetails)
+                VALUES (@AdminId, 'UPDATE_USER', @Details);
+            ";
+
+                    using (SqlCommand cmdLog = new SqlCommand(logSql, con))
+                    {
+                        cmdLog.Parameters.AddWithValue("@AdminId", adminId);
+                        cmdLog.Parameters.AddWithValue("@Details",
+                            $"Admin updated user (UserId: {userId}) -> Name={newName}, Email={newEmail}, Phone={newPhone}, Role={newRole}");
+                        cmdLog.ExecuteNonQuery();
+                    }
+                }
+
+                MessageBox.Show("User updated successfully.");
+
+                LoadUsersAndLogs();
+            }
+            catch (SqlException ex)
+            {
+                if (ex.Number == 2627 || ex.Number == 2601)
+                {
+                    MessageBox.Show("Email or Phone Number already exists. Use different values.");
+                }
+                else
+                {
+                    MessageBox.Show("Update error: " + ex.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Update error: " + ex.Message);
+            }
+         
+        }
+
+        private void dgvUsers_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0) return;
+
+            DataGridViewRow row = dgvUsers.Rows[e.RowIndex];
+
+            int userId = Convert.ToInt32(row.Cells["UserId"].Value);
+            string name = row.Cells["Name"].Value.ToString();
+            string email = row.Cells["Email"].Value.ToString();
+            string phone = row.Cells["PhoneNumber"].Value.ToString();
+            string role = row.Cells["Role"].Value.ToString();
+
+            lblSelectedUserId.Text = userId.ToString();
+
+            txtEditName.Text = name;
+            txtEditEmail.Text = email;
+            txtEditPhoneNumber.Text = phone;
+            cmbEditRole.Text = role;
+
+            cmbEditRole.Enabled = userId != Session.CurrentUserId;
+
+            LoadPasswordForUser(userId);
+        }
+    }
+}
+
+/////manage products activity form 
+
+    public partial class ManageProductsActivity : Form
+    {
+        private string selectedProductImageName = "";
+        private int selectedProductId = 0;
+        private readonly string connStr =
+            @"Server=.\SQLEXPRESS sql server link";
+        private string ProductsImagesFolder =>
+            System.IO.Path.Combine(Application.StartupPath, "photos", "products");
+
+        public ManageProductsActivity()
+        {
+            InitializeComponent();
+        }
+
+        private void ManageProductsActivity_Load(object sender, EventArgs e)
+        {
+            LoadPetTypesIntoCombo();
+            LoadProducts();
+
+            if (Session.CurrentRole == "Admin")
+            {
+                LoadProductLogs();
+            }
+            else
+            {
+                dgvProductLogs.Visible = false;
+            }
+
+            if (Session.CurrentRole == "Reception")
+            {
+                btnAddProduct.Enabled = false;
+                btnUpdateProduct.Enabled = false;
+                btnDeleteProduct.Enabled = false;
+                btnStockIn.Enabled = false;
+                btnChooseProductImage.Enabled = false;
+            }
+        }
+
+        private void LoadProducts()
+        {
+            using (SqlConnection con = new SqlConnection(connStr))
+            {
+                con.Open();
+                string sql = @"
+SELECT ProductId, ProductName, TypeId, Category, CostPrice, Price, Quantity, Description, ImagePath, Barcode
+FROM dbo.tablename
+WHERE IsActive = 1
+ORDER BY ProductId DESC;
+";
+
+                using (SqlDataAdapter da = new SqlDataAdapter(sql, con))
+                {
+                    DataTable dt = new DataTable();
+                    da.Fill(dt);
+                    dgvProducts.DataSource = dt;
+
+                    PetWell.UIHelpers.GridStyler.StyleProductsGrid(dgvProducts, Session.CurrentRole);
+                    PetWell.UIHelpers.GridStyler.HighlightLowStock(dgvProducts);
+                }
+
+                if (dgvProducts.Columns["TypeId"] != null)
+                    dgvProducts.Columns["TypeId"].Visible = false;
+
+                // Optional: hide ImagePath column if you don’t want users to see it
+                if (dgvProducts.Columns["ImagePath"] != null)
+                    dgvProducts.Columns["ImagePath"].Visible = false;
+            }
+        }
+
+        private void SearchProducts(string keyword)
+        {
+            using (SqlConnection con = new SqlConnection(connStr))
+            {
+                con.Open();
+                string sql = @"
+SELECT ProductId, ProductName, TypeId, Category, CostPrice, Price, Quantity, Description, ImagePath, Barcode
+FROM dbo.tablename
+WHERE IsActive = 1
+  AND (ProductName LIKE @Keyword OR Category LIKE @Keyword OR Barcode LIKE @Keyword)
+ORDER BY ProductId DESC;
+";
+
+                using (SqlDataAdapter da = new SqlDataAdapter(sql, con))
+                {
+                    da.SelectCommand.Parameters.AddWithValue("@Keyword", "%" + keyword + "%");
+                    DataTable dt = new DataTable();
+                    da.Fill(dt);
+
+                    dgvProducts.DataSource = dt;
+
+                    PetWell.UIHelpers.GridStyler.StyleProductsGrid(dgvProducts, Session.CurrentRole);
+                    PetWell.UIHelpers.GridStyler.HighlightLowStock(dgvProducts);
+
+                    if (Session.CurrentRole == "Reception")
+                    {
+                        if (dgvProducts.Columns["CostPrice"] != null)
+                            dgvProducts.Columns["CostPrice"].Visible = false;
+                    }
+
+                    if (dgvProducts.Columns["TypeId"] != null)
+                        dgvProducts.Columns["TypeId"].Visible = false;
+
+                    if (dgvProducts.Columns["ImagePath"] != null)
+                        dgvProducts.Columns["ImagePath"].Visible = false;
+                }
+            }
+        }
+
+        private void LoadProductLogs()
+        {
+            using (SqlConnection con = new SqlConnection(connStr))
+            {
+                con.Open();
+
+                string sql = @"
+SELECT TOP 200
+    a.ActivityId,
+    a.ActivityType,
+    a.ActivityDetails,
+    a.CreatedAt,
+    u.Name AS PerformedBy
+FROM dbo.tablename a
+INNER JOIN dbo.tablename u ON a.UserId = u.UserId
+ORDER BY a.ActivityId DESC;
+";
+
+                using (SqlDataAdapter da = new SqlDataAdapter(sql, con))
+                {
+                    DataTable dt = new DataTable();
+                    da.Fill(dt);
+                    dgvProductLogs.DataSource = dt;
+                    PetWell.UIHelpers.GridStyler.StyleProductLogsGrid(dgvProductLogs);
+                }
+                if (dgvProducts.Columns["ImagePath"] != null)
+                {
+                    dgvProducts.Columns["ImagePath"].Visible = true;
+                    dgvProducts.Columns["ImagePath"].HeaderText = "Image Path";
+                    dgvProducts.Columns["ImagePath"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+                }
+            }
+        }
+
+        private void LoadPetTypesIntoCombo()
+        {
+            using (SqlConnection con = new SqlConnection(DbHelper.ConnectionString))
+            using (SqlCommand cmd = new SqlCommand(
+                "SELECT TypeId, TypeName FROM PetTypes WHERE IsActive = 1", con))
+            {
+                con.Open();
+                DataTable dt = new DataTable();
+                dt.Load(cmd.ExecuteReader());
+
+                cmbType.DisplayMember = "TypeName";
+                cmbType.ValueMember = "TypeId";
+                cmbType.DataSource = dt;
+
+                cmbType.SelectedIndex = -1;
+            }
+        }
+
+        private void dgvProducts_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0) return;
+
+            DataGridViewRow row = dgvProducts.Rows[e.RowIndex];
+
+            selectedProductId = Convert.ToInt32(row.Cells["ProductId"].Value);
+
+            selectedProductImageName = row.Cells["ImagePath"].Value?.ToString() ?? "";
+
+            int typeId = 0;
+            int.TryParse(row.Cells["TypeId"].Value?.ToString(), out typeId);
+
+            if (typeId > 0)
+                cmbType.SelectedValue = typeId;
+            else
+                cmbType.SelectedIndex = -1;
+
+            txtProductName.Text = row.Cells["ProductName"].Value?.ToString();
+            txtCostPrice.Text = row.Cells["CostPrice"].Value?.ToString();
+            txtPrice.Text = row.Cells["Price"].Value?.ToString();
+            txtQuantity.Text = row.Cells["Quantity"].Value?.ToString();
+            txtDescription.Text = row.Cells["Description"].Value?.ToString();
+            txtBarcode.Text = row.Cells["Barcode"].Value?.ToString();
+
+            picProduct.Image?.Dispose();
+            picProduct.Image = null;
+
+            if (!string.IsNullOrWhiteSpace(selectedProductImageName))
+            {
+                System.IO.Directory.CreateDirectory(ProductsImagesFolder);
+
+                string fullPath = System.IO.Path.Combine(ProductsImagesFolder, selectedProductImageName);
+                if (System.IO.File.Exists(fullPath))
+                {
+                    using (var temp = Image.FromFile(fullPath))
+                    {
+                        picProduct.Image = new Bitmap(temp);
+                    }
+                    picProduct.SizeMode = PictureBoxSizeMode.Zoom;
+                }
+            }
+        }
+
+        private void ClearInputs()
+        {
+            selectedProductId = 0;
+            txtProductName.Clear();
+            txtCostPrice.Clear();
+            txtPrice.Clear();
+            txtQuantity.Clear();
+            txtDescription.Clear();
+            txtBarcode.Clear();
+            cmbType.SelectedIndex = -1;
+            picProduct.Image?.Dispose();
+            picProduct.Image = null;
+            selectedProductImageName = "";
+        }
+        private string GenerateBarcode13()
+        {
+            using (SqlConnection con = new SqlConnection(connStr))
+            {
+                con.Open();
+
+                string sql = @"
+SELECT ISNULL(MAX(CAST(Barcode AS BIGINT)), 2000000000000)
+FROM dbo.tablename
+WHERE Barcode IS NOT NULL
+  AND Barcode NOT LIKE '%[^0-9]%';
+";
+
+                using (SqlCommand cmd = new SqlCommand(sql, con))
+                {
+                    long maxBarcode = Convert.ToInt64(cmd.ExecuteScalar());
+                    long nextBarcode = maxBarcode + 1;
+
+                    return nextBarcode.ToString();
+                }
+            }
+        }
+
+        private void btnAddProduct_Click(object sender, EventArgs e)
+        {
+            if (Session.CurrentRole != "Admin")
+            {
+                MessageBox.Show("Only Admin can add products.");
+                return;
+            }
+
+            string name = txtProductName.Text.Trim();
+            string desc = string.IsNullOrWhiteSpace(txtDescription.Text) ? null : txtDescription.Text.Trim();
+            string barcode = txtBarcode.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(barcode))
+            {
+                barcode = GenerateBarcode13();
+            }
+            else
+            {
+                if (barcode.Length != 13 || !long.TryParse(barcode, out _))
+                {
+                    MessageBox.Show("Barcode must be exactly 13 digits.");
+                    return;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                MessageBox.Show("Product Name is required.");
+                return;
+            }
+
+            if (cmbType.SelectedValue == null)
+            {
+                MessageBox.Show("Please select a category/type.");
+                return;
+            }
+
+            int typeId = Convert.ToInt32(cmbType.SelectedValue);
+            string category = cmbType.Text.Trim();
+
+            if (!decimal.TryParse(txtCostPrice.Text.Trim(), out decimal costPrice) ||
+                !decimal.TryParse(txtPrice.Text.Trim(), out decimal price) ||
+                !int.TryParse(txtQuantity.Text.Trim(), out int qty))
+            {
+                MessageBox.Show("Enter valid numbers for CostPrice, Price and Quantity.");
+                return;
+            }
+
+            if (costPrice < 0 || price < 0 || qty < 0)
+            {
+                MessageBox.Show("CostPrice, Price and Quantity cannot be negative.");
+                return;
+            }
+
+            using (SqlConnection con = new SqlConnection(connStr))
+            {
+                con.Open();
+
+                string sql = @"
+INSERT INTO dbo.tablename
+(ProductName, TypeId, Category, CostPrice, Price, Quantity, Description, ImagePath, Barcode, IsActive, CreatedAt, UpdatedAt)
+VALUES
+(@Name, @TypeId, @Category, @CostPrice, @Price, @Qty, @Desc, @ImagePath, @Barcode, 1, GETDATE(), GETDATE());
+";
+
+                using (SqlCommand cmd = new SqlCommand(sql, con))
+                {
+                    cmd.Parameters.AddWithValue("@Name", name);
+                    cmd.Parameters.AddWithValue("@TypeId", typeId);
+                    cmd.Parameters.AddWithValue("@Category", category);
+                    cmd.Parameters.AddWithValue("@CostPrice", costPrice);
+                    cmd.Parameters.AddWithValue("@Price", price);
+                    cmd.Parameters.AddWithValue("@Qty", qty);
+                    cmd.Parameters.AddWithValue("@Desc", (object)desc ?? DBNull.Value);
+
+                    cmd.Parameters.AddWithValue("@ImagePath",
+                        string.IsNullOrWhiteSpace(selectedProductImageName)
+                            ? (object)DBNull.Value : selectedProductImageName);
+
+                    cmd.Parameters.AddWithValue("@Barcode", barcode);
+
+
+                    cmd.ExecuteNonQuery();
+
+                    LogProductActivity(con, null, "ADD_PRODUCT",
+                        $"Added product '{name}' TypeId={typeId} Category='{category}' Price={price} Qty={qty}");
+                }
+            }
+
+            MessageBox.Show("Product added successfully!");
+            ClearInputs();
+            LoadProducts();
+            if (Session.CurrentRole == "Admin") LoadProductLogs();
+        }
+
+        private void btnUpdateProduct_Click(object sender, EventArgs e)
+        {
+            if (Session.CurrentRole != "Admin")
+            {
+                MessageBox.Show("Only Admin can update products.");
+                return;
+            }
+
+            if (selectedProductId == 0)
+            {
+                MessageBox.Show("Select a product first.");
+                return;
+            }
+
+            string name = txtProductName.Text.Trim();
+            string desc = string.IsNullOrWhiteSpace(txtDescription.Text) ? null : txtDescription.Text.Trim();
+
+            string barcode = txtBarcode.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(barcode))
+            {
+                barcode = GenerateBarcode13();
+            }
+            else
+            {
+                if (barcode.Length != 13 || !long.TryParse(barcode, out _))
+                {
+                    MessageBox.Show("Barcode must be exactly 13 digits.");
+                    return;
+                }
+            }
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                MessageBox.Show("Product Name is required.");
+                return;
+            }
+
+            if (cmbType.SelectedValue == null)
+            {
+                MessageBox.Show("Please select a category/type.");
+                return;
+            }
+
+            int typeId = Convert.ToInt32(cmbType.SelectedValue);
+            string category = cmbType.Text.Trim();
+
+            if (!decimal.TryParse(txtCostPrice.Text.Trim(), out decimal costPrice) ||
+                !decimal.TryParse(txtPrice.Text.Trim(), out decimal price) ||
+                !int.TryParse(txtQuantity.Text.Trim(), out int qty))
+            {
+                MessageBox.Show("Enter valid numbers for CostPrice, Price and Quantity.");
+                return;
+            }
+
+            if (costPrice < 0 || price < 0 || qty < 0)
+            {
+                MessageBox.Show("CostPrice, Price and Quantity cannot be negative.");
+                return;
+            }
+
+            using (SqlConnection con = new SqlConnection(connStr))
+            {
+                con.Open();
+                string sql = @"
+UPDATE dbo.tablename
+SET ProductName = @Name,
+    TypeId = @TypeId,
+    Category = @Category,
+    CostPrice = @CostPrice,
+    Price = @Price,
+    Quantity = @Qty,
+    Description = @Desc,
+    ImagePath = @ImagePath,
+    Barcode = @Barcode,
+    UpdatedAt = GETDATE()
+WHERE ProductId = @ProductId;
+";
+
+                using (SqlCommand cmd = new SqlCommand(sql, con))
+                {
+                    cmd.Parameters.AddWithValue("@Name", name);
+                    cmd.Parameters.AddWithValue("@TypeId", typeId);
+                    cmd.Parameters.AddWithValue("@Category", category);
+                    cmd.Parameters.AddWithValue("@CostPrice", costPrice);
+                    cmd.Parameters.AddWithValue("@Price", price);
+                    cmd.Parameters.AddWithValue("@Qty", qty);
+                    cmd.Parameters.AddWithValue("@Desc", (object)desc ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@ProductId", selectedProductId);
+                    cmd.Parameters.AddWithValue("@Barcode", barcode);
+                    cmd.Parameters.AddWithValue("@ImagePath",
+                        string.IsNullOrWhiteSpace(selectedProductImageName)
+                            ? (object)DBNull.Value
+                            : selectedProductImageName);
+
+                    cmd.ExecuteNonQuery();
+
+                    LogProductActivity(con, selectedProductId, "UPDATE_PRODUCT",
+                        $"Updated ProductId={selectedProductId} Name='{name}' TypeId={typeId} Category='{category}' Price={price} Qty={qty}");
+                }
+            }
+
+            MessageBox.Show("Product updated successfully!");
+            ClearInputs();
+            LoadProducts();
+            if (Session.CurrentRole == "Admin") LoadProductLogs();
+        }
+
+        private void btnDeleteProduct_Click(object sender, EventArgs e)
+        {
+            if (Session.CurrentRole != "Admin")
+            {
+                MessageBox.Show("Only Admin can delete products.");
+                return;
+            }
+
+            if (selectedProductId == 0)
+            {
+                MessageBox.Show("Select a product first.");
+                return;
+            }
+
+            DialogResult result = MessageBox.Show(
+                "Are you sure you want to delete this product?",
+                "Confirm Delete",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning);
+
+            if (result != DialogResult.Yes) return;
+
+            using (SqlConnection con = new SqlConnection(connStr))
+            {
+                con.Open();
+
+                string sql = @"
+UPDATE dbo.tablename
+SET IsActive = 0,
+    UpdatedAt = GETDATE()
+WHERE ProductId = @ProductId;
+";
+
+                using (SqlCommand cmd = new SqlCommand(sql, con))
+                {
+                    cmd.Parameters.AddWithValue("@ProductId", selectedProductId);
+                    cmd.ExecuteNonQuery();
+
+                    LogProductActivity(con, selectedProductId, "DELETE_PRODUCT",
+                        $"Deactivated ProductId={selectedProductId}");
+                }
+            }
+
+            MessageBox.Show("Product deleted successfully!");
+            ClearInputs();
+            LoadProducts();
+            if (Session.CurrentRole == "Admin") LoadProductLogs();
+        }
+
+        private void btnStockIn_Click(object sender, EventArgs e)
+        {
+            if (Session.CurrentRole != "Admin")
+            {
+                MessageBox.Show("Only Admin can stock in products.");
+                return;
+            }
+
+            if (selectedProductId == 0)
+            {
+                MessageBox.Show("Select a product first.");
+                return;
+            }
+
+            string input = Interaction.InputBox("Enter quantity to add:", "Stock In", "1");
+
+            if (!int.TryParse(input, out int addQty) || addQty <= 0)
+            {
+                MessageBox.Show("Enter a valid positive number.");
+                return;
+            }
+
+            using (SqlConnection con = new SqlConnection(connStr))
+            {
+                con.Open();
+
+                string sql = @"
+UPDATE dbo.tablename
+SET Quantity = Quantity + @AddQty,
+    UpdatedAt = GETDATE()
+WHERE ProductId = @ProductId;
+";
+
+                using (SqlCommand cmd = new SqlCommand(sql, con))
+                {
+                    cmd.Parameters.AddWithValue("@AddQty", addQty);
+                    cmd.Parameters.AddWithValue("@ProductId", selectedProductId);
+                    cmd.ExecuteNonQuery();
+
+                    LogProductActivity(con, selectedProductId, "STOCK_IN",
+                        $"Stock in ProductId={selectedProductId} AddedQty={addQty}");
+                }
+            }
+
+            MessageBox.Show("Stock updated successfully!");
+            LoadProducts();
+            if (Session.CurrentRole == "Admin") LoadProductLogs();
+        }
+
+        private void btnSearch_Click(object sender, EventArgs e)
+        {
+            string keyword = txtSearch.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(keyword))
+            {
+                LoadProducts();
+                return;
+            }
+
+            SearchProducts(keyword);
+        }
+
+        private void txtSearch_TextChanged(object sender, EventArgs e)
+        {
+            string keyword = txtSearch.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(keyword))
+            {
+                LoadProducts();
+                return;
+            }
+
+            if (keyword.Length < 2) return;
+
+            SearchProducts(keyword);
+        }
+
+        private void LogProductActivity(SqlConnection con, int? productId, string activityType, string details)
+        {
+            string sql = @"
+INSERT INTO dbo.tablename (ProductId, UserId, ActivityType, ActivityDetails)
+VALUES (@ProductId, @UserId, @Type, @Details);
+";
+
+            using (SqlCommand cmd = new SqlCommand(sql, con))
+            {
+                cmd.Parameters.AddWithValue("@ProductId", (object)productId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@UserId", Session.CurrentUserId);
+                cmd.Parameters.AddWithValue("@Type", activityType);
+                cmd.Parameters.AddWithValue("@Details", details);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private void btnChooseProductImage_Click(object sender, EventArgs e)
+        {
+            using (OpenFileDialog ofd = new OpenFileDialog())
+            {
+                ofd.Filter = "Image Files|*.jpg;*.jpeg;*.png;*.bmp";
+                if (ofd.ShowDialog() != DialogResult.OK) return;
+
+                System.IO.Directory.CreateDirectory(ProductsImagesFolder);
+
+                string ext = System.IO.Path.GetExtension(ofd.FileName);
+                string newName = "product_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ext;
+
+                string destPath = System.IO.Path.Combine(ProductsImagesFolder, newName);
+
+                System.IO.File.Copy(ofd.FileName, destPath, true);
+
+                selectedProductImageName = newName;
+
+                picProduct.Image?.Dispose();
+                picProduct.Image = null;
+
+                using (var temp = Image.FromFile(destPath))
+                {
+                    picProduct.Image = new Bitmap(temp);
+                }
+                picProduct.SizeMode = PictureBoxSizeMode.Zoom;
+            }
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            if (Session.CurrentRole == "Admin")
+            {
+                AdminForm admin = new AdminForm();
+                admin.Show();
+            }
+            else if (Session.CurrentRole == "Reception")
+            {
+                ReceptionForm reception = new ReceptionForm();
+                reception.Show();
+            }
+            else
+            {
+                HomePage home = new HomePage();
+                home.Show();
+            }
+
+            this.Close();
+        }
+
+
+////// manage pet types form 
+
+ public partial class ManagePetTypesForm : Form
+{
+    private void btnBack_Click(object sender, EventArgs e)
+    {
+        AdminForm adminForm = new AdminForm();
+        adminForm.Show(); 
+        this.Close();
+    }
+
+    private readonly PetTypeRepository _petTypeRepo = new PetTypeRepository();
+    private int _selectedTypeId = 0;
+
+    public ManagePetTypesForm()
+    {
+        InitializeComponent();
+    }
+
+    private void ManagePetTypesForm_Load(object sender, EventArgs e)
+    {
+        LoadPetTypes();
+        ClearForm();
+    }
+
+    private void LoadPetTypes()
+    {
+        try
+        {
+            var types = _petTypeRepo.GetAllPetTypes();
+            dgvPetTypes.DataSource = types;
+            GridStyler.StylePetTypesGrid(dgvPetTypes);
+            dgvPetTypes.ClearSelection();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Failed to load pet types.\n\n" + ex.Message,
+                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void dgvPetTypes_CellClick(object sender, DataGridViewCellEventArgs e)
+    {
+        if (e.RowIndex < 0) return;
+
+        var row = dgvPetTypes.Rows[e.RowIndex];
+        var type = row.DataBoundItem as PetType;
+
+        if (type == null) return;
+
+        _selectedTypeId = type.TypeId;
+        txtTypeName.Text = type.TypeName;
+        txtDescription.Text = type.Description ?? "";
+        chkIsActive.Checked = type.IsActive;
+
+        UpdateActivateDeactivateButtonText();
+    }
+
+    private void btnAdd_Click(object sender, EventArgs e)
+    {
+        string typeName = txtTypeName.Text.Trim();
+        string description = txtDescription.Text.Trim();
+        bool isActive = chkIsActive.Checked;
+
+        if (string.IsNullOrWhiteSpace(typeName))
+        {
+            MessageBox.Show("Type Name is required.", "Validation",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            txtTypeName.Focus();
+            return;
+        }
+
+        try
+        {
+            var newType = new PetType
+            {
+                TypeName = typeName,
+                Description = string.IsNullOrWhiteSpace(description) ? null : description,
+                IsActive = isActive
+            };
+
+            int newId = _petTypeRepo.AddPetType(newType);
+
+            MessageBox.Show($"Pet type added successfully. (ID: {newId})",
+                "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            LoadPetTypes();
+            ClearForm();
+        }
+        catch (SqlException sqlEx)
+        {
+            if (sqlEx.Number == 2627 || sqlEx.Number == 2601)
+            {
+                MessageBox.Show("This pet type already exists. Please choose a different name.",
+                    "Duplicate Type", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            MessageBox.Show("Database error while adding pet type.\n\n" + sqlEx.Message,
+                "SQL Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Failed to add pet type.\n\n" + ex.Message,
+                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void btnUpdate_Click(object sender, EventArgs e)
+    {
+        if (_selectedTypeId == 0)
+        {
+            MessageBox.Show("Please select a pet type to update.",
+                "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        string typeName = txtTypeName.Text.Trim();
+        string description = txtDescription.Text.Trim();
+        bool isActive = chkIsActive.Checked;
+
+        if (string.IsNullOrWhiteSpace(typeName))
+        {
+            MessageBox.Show("Type Name is required.", "Validation",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            txtTypeName.Focus();
+            return;
+        }
+
+        try
+        {
+            var updatedType = new PetType
+            {
+                TypeId = _selectedTypeId,
+                TypeName = typeName,
+                Description = string.IsNullOrWhiteSpace(description) ? null : description,
+                IsActive = isActive
+            };
+
+            bool ok = _petTypeRepo.UpdatePetType(updatedType);
+
+            if (ok)
+            {
+                MessageBox.Show("Pet type updated successfully.",
+                    "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                LoadPetTypes();
+                ClearForm();
+            }
+            else
+            {
+                MessageBox.Show("Update failed. The selected type may no longer exist.",
+                    "Update Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+        catch (SqlException sqlEx)
+        {
+            if (sqlEx.Number == 2627 || sqlEx.Number == 2601)
+            {
+                MessageBox.Show("This type name already exists. Please choose a different name.",
+                    "Duplicate Type", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            MessageBox.Show("Database error while updating pet type.\n\n" + sqlEx.Message,
+                "SQL Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Failed to update pet type.\n\n" + ex.Message,
+                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void btnActivateDeactivate_Click(object sender, EventArgs e)
+    {
+        if (_selectedTypeId == 0)
+        {
+            MessageBox.Show("Please select a pet type first.",
+                "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        bool newActiveState = !chkIsActive.Checked;
+
+        try
+        {
+            bool ok = _petTypeRepo.SetPetTypeActive(_selectedTypeId, newActiveState);
+
+            if (ok)
+            {
+                MessageBox.Show(newActiveState ? "Type activated successfully." : "Type deactivated successfully.",
+                    "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                LoadPetTypes();
+                ClearForm();
+            }
+            else
+            {
+                MessageBox.Show("Operation failed. The selected type may no longer exist.",
+                    "Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Failed to change active status.\n\n" + ex.Message,
+                "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void btnRefresh_Click(object sender, EventArgs e)
+    {
+        LoadPetTypes();
+        ClearForm();
+    }
+
+    private void btnClear_Click(object sender, EventArgs e)
+    {
+        ClearForm();
+    }
+
+    private void ClearForm()
+    {
+        _selectedTypeId = 0;
+
+        txtTypeName.Clear();
+        txtDescription.Clear();
+
+        chkIsActive.Checked = true;
+
+        dgvPetTypes.ClearSelection();
+
+        UpdateActivateDeactivateButtonText();
+    }
+
+    private void UpdateActivateDeactivateButtonText()
+    {
+        btnActivateDeactivate.Text = chkIsActive.Checked ? "Deactivate" : "Activate";
+    }
+
+    private void chkIsActive_CheckedChanged(object sender, EventArgs e)
+    {
+        if (_selectedTypeId != 0)
+            UpdateActivateDeactivateButtonText();
+    }
+}
+
+
+///manage pets form 
+
+public partial class ManagePetsForm : Form
+{
+    private string selectedPetImageName = "";
+    private readonly PetRepository _petRepo = new PetRepository();
+    private readonly PetTypeRepository _typeRepo = new PetTypeRepository();
+
+    private int _selectedPetId = 0;
+    private int _adminId = 1;
+
+    private List<Pet> _allPets = new List<Pet>();
+
+    public ManagePetsForm()
+    {
+        InitializeComponent();
+    }
+
+    private bool IsReception()
+    {
+        return Session.CurrentRole == "Reception";
+    }
+
+    private void ApplyRolePermissions()
+    {
+        bool isReception = IsReception();
+
+        btnAdd.Enabled = !isReception;
+        btnUpdate.Enabled = !isReception;
+        btnDelete.Enabled = !isReception;
+        btnBrowseImage.Enabled = !isReception;
+
+        btnAdd.Visible = !isReception;
+        btnUpdate.Visible = !isReception;
+        btnDelete.Visible = !isReception;
+        btnBrowseImage.Visible = !isReception;
+
+        txtPetName.ReadOnly = isReception;
+        txtBreed.ReadOnly = isReception;
+        txtDescription.ReadOnly = isReception;
+
+        txtImagePath.ReadOnly = true;
+
+        cmbPetType.Enabled = !isReception;
+        cmbGender.Enabled = !isReception;
+        numAgeMonths.Enabled = !isReception;
+        numPrice.Enabled = !isReception;
+        chkIsAvailable.Enabled = !isReception;
+    }
+
+    private void ManagePetsForm_Load(object sender, EventArgs e)
+    {
+        SetupGrid();
+        LoadPetTypesCombo();
+        LoadPets();
+        ClearForm();
+        LoadFilterTypeCombo();
+        LoadGenderCombo();
+        ApplyRolePermissions();
+    }
+
+    private void LoadFilterTypeCombo()
+    {
+        var types = _typeRepo.GetAllPetTypes()
+                             .Where(t => t.IsActive)
+                             .ToList();
+
+        types.Insert(0, new PetType { TypeId = 0, TypeName = "All Types" });
+
+        cmbFilterType.DataSource = types;
+        cmbFilterType.DisplayMember = "TypeName";
+        cmbFilterType.ValueMember = "TypeId";
+        cmbFilterType.SelectedIndex = 0;
+    }
+
+    private void LoadGenderCombo()
+    {
+        cmbGender.Items.Clear();
+        cmbGender.Items.Add("Male");
+        cmbGender.Items.Add("Female");
+        cmbGender.Items.Add("Unknown");
+
+        cmbGender.DropDownStyle = ComboBoxStyle.DropDownList;
+        cmbGender.SelectedIndex = -1;
+    }
+
+    private void SetupGrid()
+    {
+        dgvPets.ReadOnly = true;
+        dgvPets.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+        dgvPets.MultiSelect = false;
+        dgvPets.AllowUserToAddRows = false;
+        dgvPets.AutoGenerateColumns = true;
+    }
+
+    private void LoadPetTypesCombo()
+    {
+        var types = _typeRepo.GetAllPetTypes()
+                             .Where(t => t.IsActive)
+                             .ToList();
+
+        cmbPetType.DataSource = types;
+        cmbPetType.DisplayMember = "TypeName";
+        cmbPetType.ValueMember = "TypeId";
+        cmbPetType.SelectedIndex = -1;
+    }
+
+    private int ApplySearchAndFilter()
+    {
+        string keyword = txtSearch.Text.Trim().ToLower();
+        int selectedTypeId = (cmbFilterType.SelectedValue == null) ? 0 : (int)cmbFilterType.SelectedValue;
+
+        var filtered = _allPets.AsEnumerable();
+
+        if (selectedTypeId != 0)
+            filtered = filtered.Where(p => p.TypeId == selectedTypeId);
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            filtered = filtered.Where(p =>
+                (!string.IsNullOrWhiteSpace(p.PetName) && p.PetName.ToLower().Contains(keyword)) ||
+                (!string.IsNullOrWhiteSpace(p.Breed) && p.Breed.ToLower().Contains(keyword)) ||
+                (!string.IsNullOrWhiteSpace(p.TypeName) && p.TypeName.ToLower().Contains(keyword))
+            );
+        }
+
+        var list = filtered.ToList();
+        dgvPets.DataSource = list;
+
+        GridStyler.StylePetsGrid(dgvPets);
+        dgvPets.ClearSelection();
+
+        return list.Count;
+    }
+
+    private void LoadPets()
+    {
+        _allPets = _petRepo.GetAllPets();
+        dgvPets.DataSource = _allPets;
+
+        GridStyler.StylePetsGrid(dgvPets);
+
+        if (dgvPets.Columns["PetId"] != null)
+            dgvPets.Columns["PetId"].Visible = false;
+
+        if (dgvPets.Columns["TypeId"] != null)
+            dgvPets.Columns["TypeId"].Visible = false;
+
+        if (dgvPets.Columns["TypeName"] != null)
+        {
+            dgvPets.Columns["TypeName"].HeaderText = "Pet Type";
+            dgvPets.Columns["TypeName"].DisplayIndex = 2;
+        }
+
+        dgvPets.ClearSelection();
+    }
+
+    private void dgvPets_CellClick(object sender, DataGridViewCellEventArgs e)
+    {
+        if (e.RowIndex < 0) return;
+
+        var pet = dgvPets.Rows[e.RowIndex].DataBoundItem as Pet;
+        if (pet == null) return;
+
+        _selectedPetId = pet.PetId;
+
+        txtPetName.Text = pet.PetName;
+        cmbPetType.SelectedValue = pet.TypeId;
+        txtBreed.Text = pet.Breed ?? "";
+        cmbGender.Text = pet.Gender ?? "";
+
+        numAgeMonths.Value = pet.AgeMonths ?? 0;
+
+        numPrice.Value = pet.Price;
+        txtDescription.Text = pet.Description ?? "";
+        txtImagePath.Text = pet.ImagePath ?? "";
+        chkIsAvailable.Checked = pet.IsAvailable;
+
+        selectedPetImageName = pet.ImagePath ?? "";
+        ShowPetImageFromRuntime(selectedPetImageName);
+    }
+
+    private void btnBrowseImage_Click(object sender, EventArgs e)
+    {
+        if (IsReception())
+        {
+            MessageBox.Show("Reception can view pets only.");
+            return;
+        }
+
+        using (OpenFileDialog ofd = new OpenFileDialog())
+        {
+            ofd.Filter = "Image Files|*.jpg;*.jpeg;*.png;*.bmp;*.gif";
+            ofd.Title = "Select Pet Image";
+
+            if (ofd.ShowDialog() != DialogResult.OK) return;
+
+            string folder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "photos", "pets");
+            Directory.CreateDirectory(folder);
+
+            string ext = Path.GetExtension(ofd.FileName);
+            string newName = "pet_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ext;
+
+            string destPath = Path.Combine(folder, newName);
+
+            File.Copy(ofd.FileName, destPath, true);
+
+            selectedPetImageName = newName;
+            txtImagePath.Text = newName;
+
+            ShowPetImageFromRuntime(newName);
+        }
+    }
+
+    private void ShowPetImageFromRuntime(string imageFileNameOrPath)
+    {
+        picPet.Image?.Dispose();
+        picPet.Image = null;
+        picPet.ImageLocation = null;
+
+        if (string.IsNullOrWhiteSpace(imageFileNameOrPath))
+            return;
+
+        string fullPath = Path.IsPathRooted(imageFileNameOrPath)
+            ? imageFileNameOrPath
+            : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "photos", "pets", imageFileNameOrPath);
+
+        if (!File.Exists(fullPath))
+            return;
+
+        try
+        {
+            using (var fs = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (var img = Image.FromStream(fs))
+            {
+                picPet.Image = new Bitmap(img);
+            }
+        }
+        catch
+        {
+            picPet.Image?.Dispose();
+            picPet.Image = null;
+        }
+    }
+
+    private void btnAdd_Click(object sender, EventArgs e)
+    {
+        if (IsReception())
+        {
+            MessageBox.Show("Reception can view pets only.");
+            return;
+        }
+
+        if (!ValidateForm()) return;
+
+        var pet = GetPetFromForm();
+        int newId = _petRepo.AddPet(pet);
+
+        PetActivityLogger.Log(_adminId, "ADD_PET", $"Added Pet ID={newId}, Name={pet.PetName}");
+
+        MessageBox.Show("Pet added successfully.", "Success",
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+        LoadPets();
+        ClearForm();
+    }
+
+    private void btnUpdate_Click(object sender, EventArgs e)
+    {
+        if (IsReception())
+        {
+            MessageBox.Show("Reception can view pets only.");
+            return;
+        }
+
+        if (_selectedPetId == 0)
+        {
+            MessageBox.Show("Please select a pet to update.", "No Selection",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        if (!ValidateForm()) return;
+
+        var pet = GetPetFromForm();
+        pet.PetId = _selectedPetId;
+
+        bool ok = _petRepo.UpdatePet(pet);
+
+        if (ok)
+        {
+            PetActivityLogger.Log(_adminId, "UPDATE_PET", $"Updated Pet ID={_selectedPetId}, Name={pet.PetName}");
+
+            MessageBox.Show("Pet updated successfully.", "Success",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            LoadPets();
+            ClearForm();
+        }
+        else
+        {
+            MessageBox.Show("Update failed. Pet may not exist anymore.", "Failed",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    private void btnDelete_Click(object sender, EventArgs e)
+    {
+        if (IsReception())
+        {
+            MessageBox.Show("Reception can view pets only.");
+            return;
+        }
+
+        if (_selectedPetId == 0)
+        {
+            MessageBox.Show("Please select a pet to delete.", "No Selection",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        var confirm = MessageBox.Show("Are you sure you want to delete this pet?",
+            "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+        if (confirm != DialogResult.Yes) return;
+
+        bool ok = _petRepo.DeletePet(_selectedPetId);
+
+        if (ok)
+        {
+            PetActivityLogger.Log(_adminId, "DELETE_PET", $"Deleted Pet ID={_selectedPetId}");
+
+            MessageBox.Show("Pet deleted successfully.", "Success",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            LoadPets();
+            ClearForm();
+        }
+        else
+        {
+            MessageBox.Show("Delete failed. Pet may not exist anymore.", "Failed",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    private void btnRefresh_Click(object sender, EventArgs e)
+    {
+        LoadPetTypesCombo();
+        LoadPets();
+        ClearForm();
+        txtSearch.Clear();
+        cmbFilterType.SelectedIndex = 0;
+        ClearForm();
+        ApplyRolePermissions();
+    }
+
+    private void btnClear_Click(object sender, EventArgs e)
+    {
+        ClearForm();
+        ApplyRolePermissions();
+    }
+
+    private void btnBack_Click(object sender, EventArgs e)
+    {
+        if (Session.CurrentRole == "Reception")
+        {
+            ReceptionForm f = new ReceptionForm();
+            f.Show();
+        }
+        else
+        {
+            AdminForm f = new AdminForm();
+            f.Show();
+        }
+
+        this.Close();
+    }
+
+    private void ClearForm()
+    {
+        _selectedPetId = 0;
+
+        txtPetName.Clear();
+        cmbPetType.SelectedIndex = -1;
+        txtBreed.Clear();
+        cmbGender.SelectedIndex = -1;
+
+        numAgeMonths.Value = 0;
+        numPrice.Value = 0;
+
+        txtDescription.Clear();
+        txtImagePath.Clear();
+
+        chkIsAvailable.Checked = true;
+
+        picPet.Image?.Dispose();
+        picPet.Image = null;
+        picPet.ImageLocation = null;
+
+        selectedPetImageName = "";
+
+        dgvPets.ClearSelection();
+    }
+
+    private bool ValidateForm()
+    {
+        if (string.IsNullOrWhiteSpace(txtPetName.Text))
+        {
+            MessageBox.Show("Pet name is required.", "Validation",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            txtPetName.Focus();
+            return false;
+        }
+
+        if (cmbPetType.SelectedIndex == -1)
+        {
+            MessageBox.Show("Please select a Pet Type.", "Validation",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            cmbPetType.Focus();
+            return false;
+        }
+
+        if (numPrice.Value < 0)
+        {
+            MessageBox.Show("Price cannot be negative.", "Validation",
+                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            numPrice.Focus();
+            return false;
+        }
+
+        return true;
+    }
+
+    private Pet GetPetFromForm()
+    {
+        return new Pet
+        {
+            PetName = txtPetName.Text.Trim(),
+            TypeId = (int)cmbPetType.SelectedValue,
+            Breed = string.IsNullOrWhiteSpace(txtBreed.Text) ? null : txtBreed.Text.Trim(),
+            Gender = string.IsNullOrWhiteSpace(cmbGender.Text) ? null : cmbGender.Text,
+            AgeMonths = (int)numAgeMonths.Value == 0 ? (int?)null : (int)numAgeMonths.Value,
+            Price = numPrice.Value,
+            Description = string.IsNullOrWhiteSpace(txtDescription.Text) ? null : txtDescription.Text.Trim(),
+            ImagePath = string.IsNullOrWhiteSpace(txtImagePath.Text) ? null : txtImagePath.Text.Trim(),
+            IsAvailable = chkIsAvailable.Checked
+        };
+    }
+
+    private void txtSearch_TextChanged(object sender, EventArgs e)
+    {
+        ApplySearchAndFilter();
+    }
+}
+
+
+///manage pets activity 
+
+public partial class ManagePetActivityForm : Form
+{
+    private readonly PetActivityRepository _repo = new PetActivityRepository();
+   
+    private void LoadPetLogs(DateTime? from = null, DateTime? to = null)
+    {
+        string keyword = txtAdminSearch.Text.Trim();
+        dgvPetLogs.DataSource = _repo.GetPetActivities(from, to, keyword);
+        dgvPetLogs.ClearSelection();
+    }
+
+    public ManagePetActivityForm()
+    {
+        InitializeComponent();
+    }
+
+    private void ManagePetActivityForm_Load(object sender, EventArgs e)
+    {
+        cmbDateRange.Items.Clear();
+        cmbDateRange.Items.Add("Today");
+        cmbDateRange.Items.Add("Yesterday");
+        cmbDateRange.Items.Add("Last 7 Days");
+        cmbDateRange.Items.Add("Last 30 Days");
+        cmbDateRange.Items.Add("This Month");
+        cmbDateRange.Items.Add("Last Month");
+        cmbDateRange.Items.Add("All");
+
+        cmbDateRange.SelectedIndex = 2;
+        LoadLogs();
+    }
+
+    private void LoadLogs()
+    {
+        dgvPetLogs.DataSource = _repo.GetAllPetActivities();
+        dgvPetLogs.ClearSelection();
+    }
+
+    private void btnRefresh_Click(object sender, EventArgs e)
+    {
+        LoadLogs();
+    }
+
+    private void btnBack_Click(object sender, EventArgs e)
+    {
+
+    }
+
+    private void btnBack_Click_1(object sender, EventArgs e)
+    {
+        AdminForm adminForm = new AdminForm();
+        adminForm.Show();
+        this.Close();
+    }
+
+    private void cmbDateRange_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        string range = cmbDateRange.SelectedItem?.ToString();
+
+        DateTime today = DateTime.Today;
+        DateTime? from = null;
+        DateTime? to = null;
+
+        switch (range)
+        {
+            case "Today":
+                from = today;
+                to = today.AddDays(1);
+                break;
+
+            case "Yesterday":
+                from = today.AddDays(-1);
+                to = today;
+                break;
+
+            case "Last 7 Days":
+                from = today.AddDays(-6);
+                to = today.AddDays(1);
+                break;
+
+            case "Last 30 Days":
+                from = today.AddDays(-29);
+                to = today.AddDays(1);
+                break;
+
+            case "This Month":
+                from = new DateTime(today.Year, today.Month, 1);
+                to = today.AddDays(1);
+                break;
+
+            case "Last Month":
+                DateTime firstDayThisMonth = new DateTime(today.Year, today.Month, 1);
+                DateTime firstDayLastMonth = firstDayThisMonth.AddMonths(-1);
+
+                from = firstDayLastMonth;
+                to = firstDayThisMonth;
+                break;
+
+            case "All":
+            default:
+                from = null;
+                to = null;
+                break;
+        }
+
+        LoadPetLogs(from, to);
+    }
+
+    private void btnSearchAdmin_Click(object sender, EventArgs e)
+    {
+        cmbDateRange_SelectedIndexChanged(null, null); 
+    }
+}
+
+////manage reports form 
+
+public partial class ManageReportsForm : Form
+{
+    private readonly ReportRepository _repo = new ReportRepository();
+
+    private int _selectedReportId = 0;
+
+    public ManageReportsForm()
+    {
+        InitializeComponent();
+        this.Load += ManageReportsForm_Load;
+        dgvReports.SelectionChanged += dgvReports_SelectionChanged;
+        btnReply.Click += btnReply_Click;
+        btnBack.Click += btnBack_Click;
+    }
+
+    private void ManageReportsForm_Load(object sender, EventArgs e)
+    {
+        LoadReports();
+        SetupGridBehavior();
+    }
+
+    private void SetupGridBehavior()
+    {
+        dgvReports.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+        dgvReports.MultiSelect = false;
+        dgvReports.ReadOnly = true;
+        dgvReports.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+        dgvReports.AllowUserToAddRows = false;
+        dgvReports.AllowUserToDeleteRows = false;
+    }
+
+    private void LoadReports()
+    {
+        var reports = _repo.GetAllReports();
+
+        dgvReports.DataSource = null;
+        dgvReports.AutoGenerateColumns = true;
+        dgvReports.DataSource = reports;
+
+        if (dgvReports.Columns.Contains("Message"))
+            dgvReports.Columns["Message"].Visible = false;
+
+        if (dgvReports.Columns.Contains("AdminReply"))
+            dgvReports.Columns["AdminReply"].Visible = false;
+
+        if (dgvReports.Columns.Contains("ReporterEmail"))
+            dgvReports.Columns["ReporterEmail"].HeaderText = "Email";
+
+        if (dgvReports.Columns.Contains("CreatedAt"))
+            dgvReports.Columns["CreatedAt"].HeaderText = "Date";
+
+        if (dgvReports.Columns.Contains("ReportId"))
+            dgvReports.Columns["ReportId"].HeaderText = "ID";
+    }
+
+    private void dgvReports_SelectionChanged(object sender, EventArgs e)
+    {
+        if (dgvReports.CurrentRow == null) return;
+        if (!dgvReports.Columns.Contains("ReportId")) return;
+        var idObj = dgvReports.CurrentRow.Cells["ReportId"].Value;
+        if (idObj == null) return;
+
+        _selectedReportId = Convert.ToInt32(idObj);
+
+        string email = dgvReports.Columns.Contains("ReporterEmail")
+            ? dgvReports.CurrentRow.Cells["ReporterEmail"].Value?.ToString()
+            : "";
+
+        string type = dgvReports.Columns.Contains("TargetType")
+            ? dgvReports.CurrentRow.Cells["TargetType"].Value?.ToString()
+            : "";
+
+        string status = dgvReports.Columns.Contains("Status")
+            ? dgvReports.CurrentRow.Cells["Status"].Value?.ToString()
+            : "";
+
+        string date = dgvReports.Columns.Contains("CreatedAt")
+            ? dgvReports.CurrentRow.Cells["CreatedAt"].Value?.ToString()
+            : "";
+
+        string message = dgvReports.Columns.Contains("Message")
+            ? dgvReports.CurrentRow.Cells["Message"].Value?.ToString()
+            : "";
+
+        string adminReply = dgvReports.Columns.Contains("AdminReply")
+            ? dgvReports.CurrentRow.Cells["AdminReply"].Value?.ToString()
+            : "";
+
+        rtbDetails.Text =
+            $"Report ID: {_selectedReportId}\n" +
+            $"Email: {email}\n" +
+            $"Type: {type}\n" +
+            $"Date: {date}\n" +
+            $"Status: {status}\n\n" +
+            $"Message:\n{message}\n\n" +
+            $"Admin Reply:\n{adminReply}";
+    }
+
+    private void btnReply_Click(object sender, EventArgs e)
+    {
+        if (_selectedReportId == 0)
+        {
+            MessageBox.Show("Select a report first.");
+            return;
+        }
+
+        string reply = txtReply.Text.Trim();
+        if (string.IsNullOrWhiteSpace(reply))
+        {
+            MessageBox.Show("Write a reply first.");
+            return;
+        }
+
+        _repo.ReplyToReport(_selectedReportId, reply);
+
+        MessageBox.Show("Reply saved ✅");
+        txtReply.Clear();
+        var ok = MessageBox.Show("Send this reply?", "Confirm",
+            MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+        if (ok != DialogResult.Yes) return;
+        MessageBox.Show("Reply sent ✅");
+
+        LoadReports();
+        _selectedReportId = 0;
+        rtbDetails.Clear();
+    }
+
+    private void btnBack_Click(object sender, EventArgs e)
+    {
+        this.Close();
+    }
+}
+
+
+///// order delivery activity 
+
+public partial class OrderDeliveryActivity : Form
+{
+    private readonly OrderRepository _repo = new OrderRepository();
+    private int _selectedOrderId = -1;
+
+    public OrderDeliveryActivity()
+    {
+        InitializeComponent();
+        txtBarcode.KeyDown += txtBarcode_KeyDown;
+    }
+
+    private bool IsReception()
+    {
+        return Session.CurrentRole == "Reception";
+    }
+
+    private void OrderDeliveryActivity_Load(object sender, EventArgs e)
+    {
+        if (cmbStatusFilter != null)
+        {
+            cmbStatusFilter.Items.Clear();
+            cmbStatusFilter.Items.AddRange(new object[]
+            {
+                "All", "Pending", "Confirmed", "OutForDelivery", "Cancelled"
+            });
+            cmbStatusFilter.SelectedIndex = 0;
+        }
+
+        ApplyRolePermissions();
+        LoadOrders();
+    }
+
+    private void CheckBarcodeInSelectedOrder()
+    {
+        if (!IsReception())
+        {
+            MessageBox.Show("Only Reception can check barcodes.");
+            return;
+        }
+
+        if (_selectedOrderId <= 0)
+        {
+            MessageBox.Show("Please select an order first.");
+            txtBarcode.Clear();
+            return;
+        }
+
+        string barcode = txtBarcode.Text.Trim();
+
+        if (string.IsNullOrWhiteSpace(barcode))
+            return;
+
+        if (dgvOrderItems.DataSource == null || dgvOrderItems.Rows.Count == 0)
+        {
+            MessageBox.Show("This order has no items.");
+            txtBarcode.Clear();
+            return;
+        }
+
+        bool found = false;
+        string matchedProductName = "";
+
+        foreach (DataGridViewRow row in dgvOrderItems.Rows)
+        {
+            if (row.IsNewRow) continue;
+
+            string rowBarcode = row.Cells["Barcode"].Value?.ToString()?.Trim() ?? "";
+
+            if (rowBarcode == barcode)
+            {
+                found = true;
+                matchedProductName = row.Cells["ProductName"].Value?.ToString() ?? "Product";
+                row.Selected = true;
+                dgvOrderItems.CurrentCell = row.Cells[0];
+                break;
+            }
+        }
+
+        if (found)
+        {
+            MessageBox.Show(
+                $"Matched: {matchedProductName}",
+                "Barcode Check",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        }
+        else
+        {
+            MessageBox.Show(
+                "This barcode is not part of the selected order.",
+                "Barcode Check",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
+
+        txtBarcode.Clear();
+        txtBarcode.Focus();
+    }
+
+    private void txtBarcode_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.KeyCode == Keys.Enter)
+        {
+            e.SuppressKeyPress = true;
+            CheckBarcodeInSelectedOrder();
+        }
+    }
+
+    private void ApplyRolePermissions()
+    {
+        bool isReception = IsReception();
+
+        btnConfirm.Visible = isReception;
+        btnOutForDelivery.Visible = isReception;
+        btnCancel.Visible = isReception;
+
+        btnConfirm.Enabled = false;
+        btnOutForDelivery.Enabled = false;
+        btnCancel.Enabled = false;
+    }
+
+    private void LoadOrders()
+    {
+        string filter = "All";
+
+        if (cmbStatusFilter != null && cmbStatusFilter.SelectedItem != null)
+            filter = cmbStatusFilter.SelectedItem.ToString();
+
+        dgvOrders.DataSource = _repo.GetOrders(filter);
+
+        _selectedOrderId = -1;
+        dgvOrderItems.DataSource = null;
+
+        txtBarcode.Clear();
+
+        UpdateButtons(null);
+    }
+
+    private void dgvOrders_CellClick(object sender, DataGridViewCellEventArgs e)
+    {
+        if (e.RowIndex < 0) return;
+
+        _selectedOrderId = Convert.ToInt32(dgvOrders.Rows[e.RowIndex].Cells["OrderId"].Value);
+        dgvOrderItems.DataSource = _repo.GetOrderItems(_selectedOrderId);
+
+        string status = dgvOrders.Rows[e.RowIndex].Cells["Status"].Value.ToString();
+        UpdateButtons(status);
+
+        txtBarcode.Clear();
+        txtBarcode.Focus();
+    }
+
+    private void UpdateButtons(string status)
+    {
+        if (!IsReception())
+        {
+            btnConfirm.Enabled = false;
+            btnOutForDelivery.Enabled = false;
+            btnCancel.Enabled = false;
+            return;
+        }
+
+        btnConfirm.Enabled = false;
+        btnOutForDelivery.Enabled = false;
+        btnCancel.Enabled = false;
+
+        if (_selectedOrderId <= 0 || string.IsNullOrWhiteSpace(status))
+            return;
+
+        if (status == "Pending")
+        {
+            btnConfirm.Enabled = true;
+            btnCancel.Enabled = true;
+        }
+        else if (status == "Confirmed")
+        {
+            btnOutForDelivery.Enabled = true;
+            btnCancel.Enabled = true;
+        }
+        else if (status == "OutForDelivery")
+        {
+            btnCancel.Enabled = true;
+        }
+    }
+
+    private void cmbStatusFilter_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        LoadOrders();
+    }
+
+    private void btnRefresh_Click(object sender, EventArgs e)
+    {
+        LoadOrders();
+    }
+
+    private void btnConfirm_Click(object sender, EventArgs e)
+    {
+        if (!IsReception())
+        {
+            MessageBox.Show("Only Reception can confirm orders.");
+            return;
+        }
+
+        ChangeStatus("Confirmed");
+    }
+
+    private void btnOutForDelivery_Click(object sender, EventArgs e)
+    {
+        if (!IsReception())
+        {
+            MessageBox.Show("Only Reception can update delivery status.");
+            return;
+        }
+
+        ChangeStatus("OutForDelivery");
+    }
+
+    private void btnCancel_Click(object sender, EventArgs e)
+    {
+        if (!IsReception())
+        {
+            MessageBox.Show("Only Reception can cancel orders.");
+            return;
+        }
+
+        if (_selectedOrderId <= 0)
+        {
+            MessageBox.Show("Please select an order first.");
+            return;
+        }
+
+        if (dgvOrders.CurrentRow != null)
+        {
+            string currentStatus = dgvOrders.CurrentRow.Cells["Status"].Value.ToString();
+            if (currentStatus == "Cancelled")
+            {
+                MessageBox.Show("This order is already cancelled.");
+                return;
+            }
+        }
+
+        var result = MessageBox.Show(
+            "Are you sure you want to cancel this order?",
+            "Cancel Order",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning);
+
+        if (result == DialogResult.Yes)
+            ChangeStatus("Cancelled");
+    }
+
+    private void ChangeStatus(string newStatus)
+    {
+        if (!IsReception())
+        {
+            MessageBox.Show("Only Reception can change order status.");
+            return;
+        }
+
+        if (_selectedOrderId <= 0)
+        {
+            MessageBox.Show("Please select an order first.");
+            return;
+        }
+
+        try
+        {
+            _repo.UpdateOrderStatus(_selectedOrderId, newStatus);
+            LoadOrders();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Error updating order: " + ex.Message);
+        }
+    }
+
+    private void button1_Click(object sender, EventArgs e)
+    {
+        if (Session.CurrentRole == "Reception")
+        {
+            ReceptionForm f = new ReceptionForm();
+            f.Show();
+        }
+        else
+        {
+            AdminForm f = new AdminForm();
+            f.Show();
+        }
+
+        this.Close();
+    }
+
+    private void btnViewReceipt_Click(object sender, EventArgs e)
+    {
+        if (_selectedOrderId <= 0)
+        {
+            MessageBox.Show("Please select an order first.");
+            return;
+        }
+
+        ReceiptForm frm = new ReceiptForm(_selectedOrderId);
+        frm.ShowDialog();
+    }
+}
+
+/////// reception form 
+
+public partial class ReceptionForm : BaseForm
+{
+    private void ReceptionForm_Load(object sender, EventArgs e)
+    {
+    }
+
+    public ReceptionForm()
+    {
+        InitializeComponent();
+    }
+
+    private void btnViewProducts_Click(object sender, EventArgs e)
+    {
+        ManageProductsActivity products = new ManageProductsActivity();
+        products.Show();
+    }
+
+    private void btnLogout_Click(object sender, EventArgs e)
+    {
+        DialogResult result = MessageBox.Show(
+            "Are you sure you want to log out?",
+            "Logout Confirmation",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Question
+        );
+
+        if (result == DialogResult.Yes)
+        {
+            Session.CurrentUserId = 0;
+            Session.CurrentRole = null;
+            Session.CurrentEmail = null;
+            Session.CurrentName = null;
+            Session.IsSuperAdmin = false;
+
+            LoginForm login = new LoginForm();
+            login.Show();
+
+            this.Close();
+        }
+    }
+
+    private void btnOrdersDelivery_Click(object sender, EventArgs e)
+    {
+        OrderDeliveryActivity f = new OrderDeliveryActivity();
+        f.Show();
+        this.Hide();
+    }
+
+    private void btnViewPets_Click(object sender, EventArgs e)
+    {
+        ManagePetsForm petsForm = new ManagePetsForm();
+        petsForm.Show();
+        this.Hide();
+    }
+}
+
+
+////home page form 
+
+public partial class HomePage : BaseForm
+{
+    private readonly Timer _featuredTimer = new Timer();
+    private bool _isRefreshingFeatured = false;
+
+    private readonly FeaturedRepository _featuredRepo = new FeaturedRepository();
+
+    private readonly Dictionary<Control, Rectangle> _originalBounds = new Dictionary<Control, Rectangle>();
+    private readonly Dictionary<Control, float> _originalFontSize = new Dictionary<Control, float>();
+    private Size _originalFormSize;
+    private bool _isScaling = false;
+
+    public HomePage()
+    {
+        InitializeComponent();
+        flowFeatured.WrapContents = false;
+        flowFeatured.AutoScroll = true;
+        flowFeatured.FlowDirection = FlowDirection.LeftToRight;
+        flowFeatured.Padding = new Padding(20, 10, 20, 10);
+        _featuredTimer.Interval = 600000;
+        _featuredTimer.Tick += FeaturedTimer_Tick;
+    }
+
+    private void HomePage_Load(object sender, EventArgs e)
+    {
+        LoadFeaturedItems();
+        _featuredTimer.Start();
+    }
+
+    private void FeaturedTimer_Tick(object sender, EventArgs e)
+    {
+        LoadFeaturedItems();
+    }
+
+    private string ProductsImagesFolder =>
+        Path.Combine(Application.StartupPath, "photos", "products");
+
+    private string PetsImagesFolder =>
+        Path.Combine(Application.StartupPath, "photos", "pets");
+
+    private Image LoadImageSafe(string fullPath)
+    {
+        if (!File.Exists(fullPath)) return null;
+        using (var temp = Image.FromFile(fullPath))
+            return new Bitmap(temp);
+    }
+
+    private string GetFeaturedImageFullPath(FeaturedItem item)
+    {
+        if (item == null) return "";
+        if (string.IsNullOrWhiteSpace(item.ImagePath)) return "";
+
+        if (Path.IsPathRooted(item.ImagePath))
+            return item.ImagePath;
+
+        string folder = (item.Type != null && item.Type.Equals("Pet", StringComparison.OrdinalIgnoreCase))
+            ? PetsImagesFolder
+            : ProductsImagesFolder;
+
+        return Path.Combine(folder, item.ImagePath);
+    }
+
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        _featuredTimer.Stop();
+        _featuredTimer.Dispose();
+        base.OnFormClosing(e);
+    }
+
+    private void ClearFeaturedSafely()
+    {
+        foreach (Control c in flowFeatured.Controls)
+        {
+            if (c is Panel p)
+            {
+                foreach (Control child in p.Controls)
+                {
+                    if (child is PictureBox pb && pb.Image != null)
+                    {
+                        pb.Image.Dispose();
+                        pb.Image = null;
+                    }
+                }
+            }
+
+            c.Dispose();
+        }
+
+        flowFeatured.Controls.Clear();
+    }
+
+    private void LoadFeaturedItems()
+    {
+        if (_isRefreshingFeatured) return;
+
+        try
+        {
+            _isRefreshingFeatured = true;
+
+            var items = _featuredRepo.GetFeaturedItems();
+
+            flowFeatured.SuspendLayout();
+            ClearFeaturedSafely();
+
+            foreach (var item in items)
+            {
+                var card = CreateFeaturedCard(item);
+                flowFeatured.Controls.Add(card);
+            }
+
+            int totalWidth = 0;
+
+            foreach (Control c in flowFeatured.Controls)
+                totalWidth += c.Width + c.Margin.Left + c.Margin.Right;
+
+            int leftPadding = Math.Max(0, (flowFeatured.Width - totalWidth) / 2);
+
+            flowFeatured.Padding = new Padding(leftPadding, 10, 0, 10);
+
+            flowFeatured.ResumeLayout();
+        }
+        catch (Exception ex)
+        {
+            _featuredTimer.Stop();
+            MessageBox.Show("Featured refresh error: " + ex.Message);
+        }
+        finally
+        {
+            _isRefreshingFeatured = false;
+        }
+    }
+
+    private Panel CreateFeaturedCard(FeaturedItem item)
+    {
+        Panel panel = new Panel
+        {
+            Width = 230,
+            Height = 320,
+            BackColor = Color.White,
+            Margin = new Padding(15),
+            BorderStyle = BorderStyle.FixedSingle
+        };
+
+        PictureBox pic = new PictureBox
+        {
+            Width = 180,
+            Height = 150,
+            Top = 15,
+            Left = (230 - 180) / 2,
+            SizeMode = PictureBoxSizeMode.Zoom,
+            BackColor = Color.White
+        };
+
+        string fullPath = GetFeaturedImageFullPath(item);
+        var img = LoadImageSafe(fullPath);
+        if (img != null)
+            pic.Image = img;
+
+        Label name = new Label
+        {
+            Text = item.Title,
+            Top = 175,
+            Left = 10,
+            Width = 210,
+            Height = 40,
+            TextAlign = ContentAlignment.MiddleCenter,
+            Font = new Font("Segoe UI", 10F, FontStyle.Bold)
+        };
+
+        Label price = new Label
+        {
+            Text = $"${item.Price:0.##}",
+            Top = 220,
+            Left = 10,
+            Width = 210,
+            Height = 25,
+            TextAlign = ContentAlignment.MiddleCenter,
+            Font = new Font("Segoe UI", 10F, FontStyle.Regular)
+        };
+
+        var btnAddToCart = new Button
+        {
+            BackColor = Color.FromArgb(136, 58, 73),
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+            ForeColor = Color.White,
+            Text = "Add to Cart",
+            Width = 170,
+            Height = 38,
+            Left = (230 - 170) / 2,
+            Top = 255
+        };
+        btnAddToCart.FlatAppearance.BorderSize = 0;
+
+        btnAddToCart.Tag = new ProductTag
+        {
+            ProductId = item.Id,
+            ProductName = item.Title,
+            UnitPrice = item.Price,
+            ImagePath = item.ImagePath
+        };
+
+        btnAddToCart.Click += (s, e) =>
+        {
+            var t = (ProductTag)((Button)s).Tag;
+            CartManager.AddOrIncrease("Product", t.ProductId, t.ProductName, t.UnitPrice, t.ImagePath, 1);
+            MessageBox.Show($"Added: {t.ProductName} | Cart items: {CartManager.Items.Count}");
+        };
+
+        panel.Controls.Add(pic);
+        panel.Controls.Add(name);
+        panel.Controls.Add(price);
+        panel.Controls.Add(btnAddToCart);
+
+        return panel;
+    }
+
+    private void CategoryButton_Click(object sender, EventArgs e)
+    {
+        Button btn = sender as Button;
+        if (btn == null) return;
+
+        string typeName = btn.Tag?.ToString();
+        if (string.IsNullOrWhiteSpace(typeName))
+        {
+            MessageBox.Show("Category name is missing.");
+            return;
+        }
+
+        var typeRepo = new PetTypeRepository();
+        var petType = typeRepo.GetTypeByName(typeName);
+
+        if (petType == null)
+        {
+            MessageBox.Show($"Category '{typeName}' not found in database.");
+            return;
+        }
+
+        using (var choiceForm = new CategoryChoiceForm(petType.TypeId, petType.TypeName))
+        {
+            if (choiceForm.ShowDialog(this) == DialogResult.OK)
+            {
+                _featuredTimer.Stop();
+                this.Hide();
+
+                if (choiceForm.SelectedOption == "Products")
+                {
+                    using (var productsForm = new CategoryProductsForm(petType.TypeId, petType.TypeName))
+                        productsForm.ShowDialog();
+                }
+                else if (choiceForm.SelectedOption == "Pets")
+                {
+                    using (var petsForm = new CategoryPetsForm(petType.TypeId, petType.TypeName))
+                        petsForm.ShowDialog();
+                }
+
+                this.Show();
+                _featuredTimer.Start();
+            }
+        }
+    }
+
+    private void button3_Click(object sender, EventArgs e)
+    {
+        ProfileForm profileForm = new ProfileForm();
+        profileForm.Show();
+        this.Hide();
+    }
+
+    private void btnCart_Click(object sender, EventArgs e)
+    {
+        if (!CartManager.Items.Any())
+        {
+            MessageBox.Show("Your cart is empty.");
+            return;
+        }
+
+        using (var cartForm = new CartForm())
+        {
+            cartForm.ShowDialog(this);
+        }
+    }
+}
+
+
+///// catagpry choice form 
+    public partial class CategoryChoiceForm : Form
+    {
+        private int _typeId;
+        private string _typeName;
+
+        public string SelectedOption { get; private set; }
+
+        public CategoryChoiceForm(int typeId, string typeName)
+        {
+            InitializeComponent();
+
+            _typeId = typeId;
+            _typeName = typeName;
+
+            lblTitle.Text = _typeName;
+        }
+
+        private void btnPets_Click(object sender, EventArgs e)
+        {
+            SelectedOption = "Pets";
+            this.DialogResult = DialogResult.OK;
+            this.Close();
+        }
+
+        private void btnProducts_Click(object sender, EventArgs e)
+        {
+            SelectedOption = "Products";
+            this.DialogResult = DialogResult.OK;
+            this.Close();
+        }
+
+        private void btnCancel_Click(object sender, EventArgs e)
+        {
+            this.DialogResult = DialogResult.Cancel;
+            this.Close();
+        }
+        private void CategoryChoiceForm_Load_1(object sender, EventArgs e)
+        {
+        }
+
+
+
+    }
+}
+
+
+//////category pets form 
+
+public partial class CategoryPetsForm : Form
+{
+    private string _connStr = @"Data Source=sql server ";
+    private int _typeId;
+    private string _typeName;
+
+    public CategoryPetsForm()
+    {
+        InitializeComponent();
+        btnCart.Click += btnCart_Click;
+        txtSearch.TextChanged += txtSearch_TextChanged;
+        cmbAge.SelectedIndexChanged += cmbAge_SelectedIndexChanged;
+        cmbPrice.SelectedIndexChanged += cmbPrice_SelectedIndexChanged;
+
+        btnCart.BringToFront();
+        btnCart.Parent?.BringToFront();
+        btnCart.BringToFront();
+        btnCart.Enabled = true;
+        btnCart.Visible = true;
+
+        cmbAge.Items.Clear();
+        cmbAge.Items.Add("All Ages");
+        cmbAge.Items.Add("0-6 months");
+        cmbAge.Items.Add("6-12 months");
+        cmbAge.Items.Add("1+ year");
+        cmbAge.Items.Add("3+ years");
+        cmbAge.SelectedIndex = 0;
+
+        cmbPrice.Items.Clear();
+        cmbPrice.Items.Add("All Prices");
+        cmbPrice.Items.Add("Under $100");
+        cmbPrice.Items.Add("$100 - $300");
+        cmbPrice.Items.Add("$300 - $500");
+        cmbPrice.Items.Add("Above $500");
+        cmbPrice.SelectedIndex = 0;
+    }
+
+    public CategoryPetsForm(int typeId, string typeName) : this()
+    {
+        _typeId = typeId;
+        _typeName = typeName;
+        lblBreadcrumb.Text = $"{_typeName}  ->  Pets";
+        LoadPets();
+    }
+
+    private void ApplyFilters()
+    {
+        string keyword = txtSearch.Text.Trim();
+        string ageFilter = cmbAge.Text.Trim();
+        string priceFilter = cmbPrice.Text.Trim();
+        LoadPets(keyword, ageFilter, priceFilter);
+    }
+
+    private void LoadPets(string keyword = "", string ageFilter = "", string priceFilter = "")
+    {
+        flpCards.Controls.Clear();
+
+        using (var con = new SqlConnection(_connStr))
+        {
+            string query = @"
+SELECT PetId, PetName, Breed, Gender, AgeMonths, Price, Description, ImagePath
+FROM table name
+WHERE IsAvailable = 1 AND TypeId = @TypeId";
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+                query += " AND PetName LIKE @Keyword";
+
+            if (!string.IsNullOrWhiteSpace(ageFilter) && ageFilter != "All Ages")
+            {
+                if (ageFilter == "0-6 months")
+                    query += " AND AgeMonths BETWEEN 0 AND 6";
+                else if (ageFilter == "6-12 months")
+                    query += " AND AgeMonths BETWEEN 6 AND 12";
+                else if (ageFilter == "1+ year")
+                    query += " AND AgeMonths >= 12";
+                else if (ageFilter == "3+ years")
+                    query += " AND AgeMonths >= 36";
+            }
+
+            if (!string.IsNullOrWhiteSpace(priceFilter) && priceFilter != "All Prices")
+            {
+                if (priceFilter == "Under $100")
+                    query += " AND Price < 100";
+                else if (priceFilter == "$100 - $300")
+                    query += " AND Price BETWEEN 100 AND 300";
+                else if (priceFilter == "$300 - $500")
+                    query += " AND Price BETWEEN 300 AND 500";
+                else if (priceFilter == "Above $500")
+                    query += " AND Price > 500";
+            }
+
+            query += " ORDER BY PetId DESC";
+
+            using (var cmd = new SqlCommand(query, con))
+            {
+                cmd.Parameters.AddWithValue("@TypeId", _typeId);
+                if (!string.IsNullOrWhiteSpace(keyword))
+                    cmd.Parameters.AddWithValue("@Keyword", "%" + keyword + "%");
+
+                con.Open();
+                using (var r = cmd.ExecuteReader())
+                {
+                    bool hasRows = false;
+
+                    while (r.Read())
+                    {
+                        hasRows = true;
+
+                        int id = Convert.ToInt32(r["PetId"]);
+                        string name = Convert.ToString(r["PetName"]);
+                        string breed = Convert.ToString(r["Breed"]);
+                        string gender = Convert.ToString(r["Gender"]);
+                        int ageMonths = r["AgeMonths"] == DBNull.Value ? 0 : Convert.ToInt32(r["AgeMonths"]);
+                        decimal price = r["Price"] == DBNull.Value ? 0 : Convert.ToDecimal(r["Price"]);
+                        string desc = Convert.ToString(r["Description"]);
+                        string imagePath = Convert.ToString(r["ImagePath"]);
+
+                        flpCards.Controls.Add(BuildPetCard(id, name, breed, gender, ageMonths, price, desc, imagePath));
+                    }
+
+                    if (!hasRows)
+                    {
+                        var lblEmpty = new Label
+                        {
+                            AutoSize = false,
+                            Width = flpCards.Width - 30,
+                            Height = 60,
+                            TextAlign = ContentAlignment.MiddleCenter,
+                            Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+                            ForeColor = Color.FromArgb(120, 80, 90),
+                            Text = "No pets found for the selected filters."
+                        };
+                        flpCards.Controls.Add(lblEmpty);
+                    }
+                }
+            }
+        }
+    }
+
+    private Panel BuildPetCard(int petId, string name, string breed, string gender, int ageMonths, decimal price, string desc, string imagePath)
+    {
+        var card = new Panel
+        {
+            BackColor = Color.White,
+            Size = new Size(280, 355),
+            Margin = new Padding(14, 12, 10, 12)
+        };
+
+        var pic = new PictureBox
+        {
+            BackColor = Color.FromArgb(240, 240, 240),
+            Location = new Point(12, 12),
+            Size = new Size(256, 150),
+            SizeMode = PictureBoxSizeMode.Zoom
+        };
+
+        if (!string.IsNullOrWhiteSpace(imagePath))
+        {
+            string fullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "photos", "pets", imagePath);
+            if (File.Exists(fullPath))
+            {
+                using (var fs = new FileStream(fullPath, FileMode.Open, FileAccess.Read))
+                using (var tempImg = Image.FromStream(fs))
+                {
+                    pic.Image = new Bitmap(tempImg);
+                }
+            }
+        }
+
+        var lblName = new Label
+        {
+            Font = new Font("Segoe UI", 13F, FontStyle.Bold),
+            ForeColor = Color.FromArgb(80, 35, 45),
+            Location = new Point(12, 170),
+            Size = new Size(256, 28),
+            Text = name
+        };
+
+        var lblInfo = new Label
+        {
+            Font = new Font("Segoe UI", 10F),
+            ForeColor = Color.FromArgb(120, 80, 90),
+            Location = new Point(12, 202),
+            Size = new Size(256, 22),
+            Text = $"{breed} • {gender} • {ageMonths} mo"
+        };
+
+        string shortDesc = string.IsNullOrWhiteSpace(desc) ? "" : desc;
+        if (shortDesc.Length > 22) shortDesc = shortDesc.Substring(0, 22) + "...";
+
+        var lblDesc = new Label
+        {
+            Font = new Font("Segoe UI", 10F),
+            ForeColor = Color.FromArgb(120, 80, 90),
+            Location = new Point(12, 226),
+            Size = new Size(170, 22),
+            Text = shortDesc
+        };
+
+        var lblPrice = new Label
+        {
+            Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+            ForeColor = Color.FromArgb(90, 130, 70),
+            Location = new Point(185, 215),
+            Size = new Size(83, 33),
+            TextAlign = ContentAlignment.MiddleRight,
+            Text = "$" + price.ToString("0.##")
+        };
+
+        var btnDetails = new Button
+        {
+            BackColor = Color.FromArgb(125, 45, 60),
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 10.2F, FontStyle.Bold),
+            ForeColor = Color.White,
+            Location = new Point(12, 260),
+            Size = new Size(256, 38),
+            Text = "View Details",
+            Tag = petId
+        };
+        btnDetails.FlatAppearance.BorderSize = 0;
+        btnDetails.Click += (s, e) =>
+        {
+            int id = (int)((Button)s).Tag;
+            var details = new PetDetailsForm(id);
+            details.ShowDialog();
+        };
+
+        var btnAddToCart = new Button
+        {
+            BackColor = Color.FromArgb(136, 58, 73),
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 10.2F, FontStyle.Bold),
+            ForeColor = Color.White,
+            Location = new Point(12, 302),
+            Size = new Size(256, 38),
+            Text = "Add to Cart"
+        };
+        btnAddToCart.FlatAppearance.BorderSize = 0;
+
+        btnAddToCart.Click += (s, e) =>
+        {
+            CartManager.AddOrIncrease("Pet", petId, name, price, imagePath, 1);
+            MessageBox.Show($"Added pet: {name}");
+        };
+
+        card.Controls.Add(pic);
+        card.Controls.Add(lblName);
+        card.Controls.Add(lblInfo);
+        card.Controls.Add(lblDesc);
+        card.Controls.Add(lblPrice);
+        card.Controls.Add(btnDetails);
+        card.Controls.Add(btnAddToCart);
+
+        return card;
+    }
+
+    private void txtSearch_TextChanged(object sender, EventArgs e)
+    {
+        ApplyFilters();
+    }
+
+    private void cmbAge_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        ApplyFilters();
+    }
+
+    private void cmbPrice_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        ApplyFilters();
+    }
+
+    private void btnBackToCategories_Click(object sender, EventArgs e)
+    {
+        this.Close();
+    }
+
+    private void btnCart_Click(object sender, EventArgs e)
+    {
+        using (var cartForm = new CartForm())
+        {
+            cartForm.ShowDialog(this);
+        }
+    }
+}
+
+
+////pet details form 
+
+
+public partial class PetDetailsForm : Form
+{
+    private readonly string _connStr = @"Data Source=.\SQLEXPRESS;Initial Catalog=UserManagementDB;Integrated Security=True";
+    private readonly int _petId;
+    private string _petName = "";
+    private decimal _petPrice = 0;
+    private string _imagePath = "";
+
+    public PetDetailsForm(int petId)
+    {
+        InitializeComponent();
+        _petId = petId;
+
+        this.Load += PetDetailsForm_Load;
+        btnAddToCart.Click += btnAddToCart_Click;
+        BackBtn.Click += BackBtn_Click;
+    }
+
+    private void PetDetailsForm_Load(object sender, EventArgs e)
+    {
+        LoadPetDetails();
+    }
+
+    private void LoadPetDetails()
+    {
+        using (var con = new SqlConnection(_connStr))
+        using (var cmd = new SqlCommand(@"
+SELECT PetName, Breed, Gender, AgeMonths, Price, Description, ImagePath
+FROM Pets
+WHERE PetId = @PetId", con))
+        {
+            cmd.Parameters.AddWithValue("@PetId", _petId);
+
+            con.Open();
+            using (var r = cmd.ExecuteReader())
+            {
+                if (r.Read())
+                {
+                    _petName = Convert.ToString(r["PetName"]);
+                    _petPrice = Convert.ToDecimal(r["Price"]);
+                    _imagePath = Convert.ToString(r["ImagePath"]);
+
+                    lblName.Text = "Name: " + _petName;
+                    lblBreed.Text = "Breed: " + Convert.ToString(r["Breed"]);
+                    lblGender.Text = "Gender: " + Convert.ToString(r["Gender"]);
+                    lblAge.Text = "Age: " + Convert.ToString(r["AgeMonths"]) + " months";
+                    lblPrice.Text = "Price: $" + _petPrice.ToString("0.##");
+
+                    if (!string.IsNullOrWhiteSpace(_imagePath))
+                    {
+                        string fullPath = Path.Combine(
+                            AppDomain.CurrentDomain.BaseDirectory,
+                            "photos",
+                            "pets",
+                            _imagePath);
+
+                        if (File.Exists(fullPath))
+                        {
+                            using (var fs = new FileStream(fullPath, FileMode.Open, FileAccess.Read))
+                            using (var tempImg = Image.FromStream(fs))
+                            {
+                                picPet.Image = new Bitmap(tempImg);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Pet not found.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    this.Close();
+                }
+            }
+        }
+    }
+
+    private void btnAddToCart_Click(object sender, EventArgs e)
+    {
+        CartManager.AddOrIncrease(
+            "Pet",
+            _petId,
+            _petName,
+            _petPrice,
+            _imagePath,
+            1
+        );
+
+        MessageBox.Show(
+            "Pet added to cart!",
+            "Cart",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information
+        );
+    }
+
+    private void BackBtn_Click(object sender, EventArgs e)
+    {
+        this.Close();
+    }
+}
+
+
+
+//// category products form
+
+
+public partial class CategoryProductsForm : Form
+{
+    private string _connStr = @"Data Source=.\SQLEXPRESS;Initial Catalog=UserManagementDB;Integrated Security=True";
+    private int _typeId;
+    private string _typeName;
+    private readonly ProductRepository _productRepo = new ProductRepository();
+
+    public CategoryProductsForm()
+    {
+        InitializeComponent();
+    }
+
+    public CategoryProductsForm(int typeId, string typeName) : this()
+    {
+        _typeId = typeId;
+        _typeName = typeName;
+
+        lblBreadcrumb.Text = $"{_typeName}  ->  Products";
+        InitFilters();
+        LoadProducts();
+    }
+
+    private Panel BuildProductCard(int productId, string name, string category, string desc, decimal price, int qty, string imagePath)
+    {
+        var card = new Panel
+        {
+            BackColor = Color.White,
+            Size = new Size(280, 355),
+            Margin = new Padding(14, 12, 10, 12)
+        };
+
+        var pic = new PictureBox
+        {
+            BackColor = Color.FromArgb(240, 240, 240),
+            Location = new Point(12, 12),
+            Size = new Size(256, 150),
+            SizeMode = PictureBoxSizeMode.Zoom
+        };
+
+        if (!string.IsNullOrWhiteSpace(imagePath))
+        {
+            string fullPath = Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory, "photos", "products", imagePath);
+
+            if (File.Exists(fullPath))
+            {
+                using (var fs = new FileStream(fullPath, FileMode.Open, FileAccess.Read))
+                {
+                    pic.Image = Image.FromStream(fs);
+                }
+            }
+        }
+
+        var badge = new Label
+        {
+            Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+            ForeColor = Color.White,
+            Location = new Point(12, 132),
+            Size = new Size(120, 26),
+            TextAlign = ContentAlignment.MiddleCenter,
+            Text = qty > 0 ? "Available" : "Out of Stock",
+            BackColor = qty > 0 ? Color.FromArgb(95, 160, 110) : Color.FromArgb(160, 80, 80)
+        };
+
+        var lblName = new Label
+        {
+            Font = new Font("Segoe UI", 13F, FontStyle.Bold),
+            ForeColor = Color.FromArgb(80, 35, 45),
+            Location = new Point(12, 170),
+            Size = new Size(256, 28),
+            Text = name
+        };
+
+        var lblCategory = new Label
+        {
+            Font = new Font("Segoe UI", 10F),
+            ForeColor = Color.FromArgb(120, 80, 90),
+            Location = new Point(12, 202),
+            Size = new Size(256, 22),
+            Text = category
+        };
+
+        string shortDesc = string.IsNullOrWhiteSpace(desc) ? "" : desc;
+        if (shortDesc.Length > 22) shortDesc = shortDesc.Substring(0, 22) + "...";
+
+        var lblDesc = new Label
+        {
+            Font = new Font("Segoe UI", 10F),
+            ForeColor = Color.FromArgb(120, 80, 90),
+            Location = new Point(12, 226),
+            Size = new Size(170, 22),
+            Text = shortDesc
+        };
+
+        var lblPrice = new Label
+        {
+            Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+            ForeColor = Color.FromArgb(90, 130, 70),
+            Location = new Point(185, 215),
+            Size = new Size(83, 33),
+            TextAlign = ContentAlignment.MiddleRight,
+            Text = "$" + price.ToString("0.##")
+        };
+
+        var btnDetails = new Button
+        {
+            BackColor = Color.FromArgb(125, 45, 60),
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 10.2F, FontStyle.Bold),
+            ForeColor = Color.White,
+            Location = new Point(12, 260),
+            Size = new Size(256, 38),
+            Text = "View Details",
+            Tag = productId
+        };
+
+        btnDetails.Click += (s, e) =>
+        {
+            int id = (int)((Button)s).Tag;
+            ProductDetailsForm detailsForm = new ProductDetailsForm(id);
+            detailsForm.ShowDialog();
+        };
+
+        var btnAddToCart = new Button
+        {
+            BackColor = Color.FromArgb(136, 58, 73),
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI", 10.2F, FontStyle.Bold),
+            ForeColor = Color.White,
+            Location = new Point(12, 302),
+            Size = new Size(256, 38),
+            Text = "Add to Cart",
+            Enabled = qty > 0
+        };
+
+        btnAddToCart.Tag = new ProductTag
+        {
+            ProductId = productId,
+            ProductName = name,
+            UnitPrice = price,
+            ImagePath = imagePath
+        };
+
+        btnAddToCart.Click += (s, e) =>
+        {
+            var t = (ProductTag)((Button)s).Tag;
+            CartManager.AddOrIncrease("Product", t.ProductId, t.ProductName, t.UnitPrice, t.ImagePath, 1);
+            MessageBox.Show($"Added: {t.ProductName} | Cart items: {CartManager.Items.Count}");
+        };
+
+        card.Controls.Add(pic);
+        card.Controls.Add(badge);
+        card.Controls.Add(lblName);
+        card.Controls.Add(lblCategory);
+        card.Controls.Add(lblDesc);
+        card.Controls.Add(lblPrice);
+        card.Controls.Add(btnDetails);
+        card.Controls.Add(btnAddToCart);
+
+        return card;
+    }
+
+    private void InitFilters()
+    {
+        cmbPriceFilter.Items.Clear();
+        cmbPriceFilter.Items.Add("All Prices");
+        cmbPriceFilter.Items.Add("$0 - $10");
+        cmbPriceFilter.Items.Add("$10 - $25");
+        cmbPriceFilter.Items.Add("$25 - $50");
+        cmbPriceFilter.Items.Add("$50+");
+        cmbPriceFilter.SelectedIndex = 0;
+
+        cmbSortOrder.Items.Clear();
+        cmbSortOrder.Items.Add("Latest → Oldest");
+        cmbSortOrder.Items.Add("Oldest → Latest");
+        cmbSortOrder.Items.Add("Price: Low → High");
+        cmbSortOrder.Items.Add("Price: High → Low");
+        cmbSortOrder.SelectedIndex = 0;
+
+        cmbPriceFilter.SelectedIndexChanged += (s, e) => LoadProducts();
+        cmbSortOrder.SelectedIndexChanged += (s, e) => LoadProducts();
+    }
+
+    private void LoadProducts()
+    {
+        flpCards.Controls.Clear();
+
+        decimal? minPrice = null;
+        decimal? maxPrice = null;
+
+        string priceChoice = cmbPriceFilter.SelectedItem?.ToString() ?? "All Prices";
+        if (priceChoice == "$0 - $10") { minPrice = 0; maxPrice = 10; }
+        else if (priceChoice == "$10 - $25") { minPrice = 10; maxPrice = 25; }
+        else if (priceChoice == "$25 - $50") { minPrice = 25; maxPrice = 50; }
+        else if (priceChoice == "$50+") { minPrice = 50; maxPrice = null; }
+
+        string sortChoice = cmbSortOrder.SelectedItem?.ToString() ?? "Latest → Oldest";
+        string orderBy = "CreatedAt DESC";
+
+        if (sortChoice == "Oldest → Latest") orderBy = "CreatedAt ASC";
+        else if (sortChoice == "Price: Low → High") orderBy = "Price ASC";
+        else if (sortChoice == "Price: High → Low") orderBy = "Price DESC";
+
+        using (var con = new SqlConnection(_connStr))
+        using (var cmd = new SqlCommand($@"
+SELECT ProductId, ProductName, Category, Description, Price, Quantity, ImagePath
+FROM Products
+WHERE IsActive = 1 AND TypeId = @TypeId
+AND (@MinPrice IS NULL OR Price >= @MinPrice)
+AND (@MaxPrice IS NULL OR Price <= @MaxPrice)
+ORDER BY {orderBy};", con))
+        {
+            cmd.Parameters.AddWithValue("@TypeId", _typeId);
+            cmd.Parameters.AddWithValue("@MinPrice", (object)minPrice ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@MaxPrice", (object)maxPrice ?? DBNull.Value);
+
+            con.Open();
+            using (var r = cmd.ExecuteReader())
+            {
+                while (r.Read())
+                {
+                    int id = Convert.ToInt32(r["ProductId"]);
+                    string name = Convert.ToString(r["ProductName"]);
+                    string category = Convert.ToString(r["Category"]);
+                    string desc = Convert.ToString(r["Description"]);
+                    decimal price = Convert.ToDecimal(r["Price"]);
+                    int qty = Convert.ToInt32(r["Quantity"]);
+                    string imagePath = Convert.ToString(r["ImagePath"]);
+
+                    flpCards.Controls.Add(BuildProductCard(id, name, category, desc, price, qty, imagePath));
+                }
+            }
+        }
+    }
+
+    private void btnBackToCategories_Click(object sender, EventArgs e)
+    {
+        this.Close();
+    }
+
+    private void btnCart_Click(object sender, EventArgs e)
+    {
+        using (var cartForm = new CartForm())
+        {
+            cartForm.ShowDialog(this);
+        }
+    }
+}
+
+
+
+
+///// product details  form 
+
+public partial class ProductDetailsForm : Form
+{
+    private readonly string _connStr =
+        @"Data Source=.\SQLEXPRESS;Initial Catalog=UserManagementDB;Integrated Security=True";
+
+    private int _productId;
+    private string _productName = "";
+    private decimal _productPrice = 0;
+    private string _imagePath = "";
+
+    public ProductDetailsForm(int productId)
+    {
+        InitializeComponent();
+        _productId = productId;
+
+        this.Load += ProductDetailsForm_Load;
+        btnBack.Click += btnBack_Click;
+        btnAddToCart.Click += btnAddToCart_Click;
+    }
+
+    private void ProductDetailsForm_Load(object sender, EventArgs e)
+    {
+        LoadProductDetails();
+    }
+
+    private Image LoadImageSafe(string fullPath)
+    {
+        if (!File.Exists(fullPath)) return null;
+
+        using (var temp = Image.FromFile(fullPath))
+        {
+            return new Bitmap(temp);
+        }
+    }
+
+    private void LoadProductDetails()
+    {
+        using (SqlConnection conn = new SqlConnection(_connStr))
+        {
+            conn.Open();
+
+            string query = @"
+SELECT ProductName, Price, Quantity, Description, Category, ImagePath
+FROM Products
+WHERE ProductId = @ProductID";
+
+            using (SqlCommand cmd = new SqlCommand(query, conn))
+            {
+                cmd.Parameters.AddWithValue("@ProductID", _productId);
+
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        _productName = reader["ProductName"].ToString();
+                        _productPrice = Convert.ToDecimal(reader["Price"]);
+                        _imagePath = reader["ImagePath"].ToString();
+
+                        lblName.Text = _productName;
+                        lblPrice.Text = "Price: $" + _productPrice.ToString("0.00");
+                        lblStock.Text = "Stock: " + reader["Quantity"].ToString();
+                        lblDescription.Text = reader["Description"].ToString();
+                        lblCategory.Text = "Category: " + reader["Category"].ToString();
+
+                        string fullImagePath = Path.Combine(
+                            Application.StartupPath,
+                            "photos",
+                            "products",
+                            _imagePath);
+
+                        picProduct.Image = LoadImageSafe(fullImagePath);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Product not found.");
+                        this.Close();
+                    }
+                }
+            }
+        }
+    }
+
+    private void btnBack_Click(object sender, EventArgs e)
+    {
+        this.Close();
+    }
+
+    private void btnAddToCart_Click(object sender, EventArgs e)
+    {
+        CartManager.AddOrIncrease(
+            "Product",
+            _productId,
+            _productName,
+            _productPrice,
+            _imagePath,
+            1
+        );
+
+        MessageBox.Show(
+            "Product added to cart!",
+            "Cart",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information
+        );
+    }
+}
+
+////// cart  form
+public partial class CartForm : Form
+{
+    private class CartKey
+    {
+        public string ItemType { get; set; }
+        public int ItemId { get; set; }
+    }
+
+    public CartForm()
+    {
+        InitializeComponent();
+        ApplyTheme();
+    }
+
+    private void CartForm_Load(object sender, EventArgs e)
+    {
+        RenderCart();
+    }
+
+    private void ApplyTheme()
+    {
+        this.BackColor = Color.FromArgb(252, 233, 238);
+    }
+
+    private void RenderCart()
+    {
+        flpCartItems.Controls.Clear();
+        flpCartItems.FlowDirection = FlowDirection.TopDown;
+        flpCartItems.WrapContents = false;
+        flpCartItems.AutoScroll = true;
+
+        int cardWidth = flpCartItems.ClientSize.Width - 30;
+        if (cardWidth < 560) cardWidth = 560;
+
+        foreach (var item in CartManager.Items.ToList())
+        {
+            var card = BuildCartItemCard(item.ItemType, item.ItemId);
+            card.Width = cardWidth;
+            flpCartItems.Controls.Add(card);
+        }
+
+        UpdateTotalUI();
+    }
+
+    private Panel BuildCartItemCard(string itemType, int itemId)
+    {
+        var item = CartManager.Items.First(x => x.ItemType == itemType && x.ItemId == itemId);
+
+        Panel card = new Panel
+        {
+            Height = 130,
+            BackColor = Color.FromArgb(255, 245, 248),
+            Margin = new Padding(14),
+            Padding = new Padding(12)
+        };
+
+        var grid = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 3,
+            RowCount = 1
+        };
+        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120));
+        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 260));
+
+        PictureBox pic = new PictureBox
+        {
+            Dock = DockStyle.Fill,
+            BackColor = Color.FromArgb(245, 220, 228),
+            SizeMode = PictureBoxSizeMode.Zoom,
+            Margin = new Padding(0, 0, 10, 0)
+        };
+
+        if (!string.IsNullOrWhiteSpace(item.ImagePath))
+        {
+            string folder = item.ItemType != null &&
+                            item.ItemType.Equals("Pet", StringComparison.OrdinalIgnoreCase)
+                            ? "pets"
+                            : "products";
+
+            string fullPath = Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory, "photos", folder, item.ImagePath);
+
+            if (File.Exists(fullPath))
+            {
+                using (var temp = Image.FromFile(fullPath))
+                    pic.Image = new Bitmap(temp);
+            }
+        }
+
+        Panel textPanel = new Panel { Dock = DockStyle.Fill };
+
+        Label lblName = new Label
+        {
+            AutoSize = false,
+            Dock = DockStyle.Top,
+            Height = 32,
+            Text = item.Name,
+            Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+            ForeColor = Color.FromArgb(90, 40, 55)
+        };
+
+        Label lblPrice = new Label
+        {
+            AutoSize = false,
+            Dock = DockStyle.Top,
+            Height = 24,
+            Text = $"Unit Price: ${item.UnitPrice:0.00}",
+            Font = new Font("Segoe UI", 10F),
+            ForeColor = Color.FromArgb(120, 80, 95)
+        };
+
+        Label lblType = new Label
+        {
+            AutoSize = false,
+            Dock = DockStyle.Top,
+            Height = 20,
+            Text = item.ItemType,
+            Font = new Font("Segoe UI", 9F),
+            ForeColor = Color.Gray
+        };
+
+        textPanel.Controls.Add(lblType);
+        textPanel.Controls.Add(lblPrice);
+        textPanel.Controls.Add(lblName);
+
+        Panel controlsPanel = new Panel { Dock = DockStyle.Fill };
+
+        Panel qtyPanel = new Panel
+        {
+            Width = 150,
+            Height = 40,
+            Left = 0,
+            Top = 40
+        };
+
+        var key = new CartKey { ItemType = itemType, ItemId = itemId };
+
+        Button btnMinus = new Button
+        {
+            Width = 40,
+            Height = 40,
+            Left = 0,
+            Top = 0,
+            Text = "−",
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.FromArgb(244, 180, 195),
+            ForeColor = Color.White,
+            Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+            Tag = key
+        };
+        btnMinus.FlatAppearance.BorderSize = 0;
+
+        Label lblQty = new Label
+        {
+            Width = 70,
+            Height = 40,
+            Left = 40,
+            Top = 0,
+            TextAlign = ContentAlignment.MiddleCenter,
+            Text = item.Quantity.ToString(),
+            Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+            ForeColor = Color.FromArgb(90, 40, 55),
+            BackColor = Color.White,
+            BorderStyle = BorderStyle.FixedSingle
+        };
+
+        Button btnPlus = new Button
+        {
+            Width = 40,
+            Height = 40,
+            Left = 110,
+            Top = 0,
+            Text = "+",
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.FromArgb(244, 180, 195),
+            ForeColor = Color.White,
+            Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+            Tag = key
+        };
+        btnPlus.FlatAppearance.BorderSize = 0;
+
+        qtyPanel.Controls.Add(btnMinus);
+        qtyPanel.Controls.Add(lblQty);
+        qtyPanel.Controls.Add(btnPlus);
+
+        Button btnDelete = new Button
+        {
+            Width = 120,
+            Height = 40,
+            Left = 160,
+            Top = 40,
+            Text = "Delete",
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.FromArgb(170, 65, 90),
+            ForeColor = Color.White,
+            Font = new Font("Segoe UI", 10.5F, FontStyle.Bold),
+            Tag = key
+        };
+        btnDelete.FlatAppearance.BorderSize = 0;
+
+        btnPlus.Click += (s, e) =>
+        {
+            var k = (CartKey)((Button)s).Tag;
+            CartManager.Increase(k.ItemType, k.ItemId);
+            RenderCart();
+        };
+
+        btnMinus.Click += (s, e) =>
+        {
+            var k = (CartKey)((Button)s).Tag;
+            CartManager.Decrease(k.ItemType, k.ItemId);
+            RenderCart();
+        };
+
+        btnDelete.Click += (s, e) =>
+        {
+            var k = (CartKey)((Button)s).Tag;
+            CartManager.Remove(k.ItemType, k.ItemId);
+            RenderCart();
+        };
+
+        controlsPanel.Controls.Add(qtyPanel);
+        controlsPanel.Controls.Add(btnDelete);
+
+        grid.Controls.Add(pic, 0, 0);
+        grid.Controls.Add(textPanel, 1, 0);
+        grid.Controls.Add(controlsPanel, 2, 0);
+
+        card.Controls.Add(grid);
+        return card;
+    }
+
+    private void UpdateTotalUI()
+    {
+        lblTotal.Text = $"Total: ${CartManager.Total():0.00}";
+    }
+
+    private void btnCheckout_Click(object sender, EventArgs e)
+    {
+        if (!CartManager.Items.Any())
+        {
+            MessageBox.Show("Cart is empty.");
+            return;
+        }
+
+        int userId = Session.CurrentUserId;
+        if (userId <= 0)
+        {
+            MessageBox.Show("Session expired. Please log in again.");
+            return;
+        }
+
+        using (var frm = new CheckoutForm(userId))
+            frm.ShowDialog();
+
+        RenderCart();
+    }
+
+    private void btnContinueShopping_Click(object sender, EventArgs e)
+    {
+        this.Close();
+    }
+}
+
+
+////// check out form
+
+public partial class CheckoutForm : Form
+{
+    private readonly int _userId;
+
+    public CheckoutForm(int userId)
+    {
+        InitializeComponent();
+        _userId = userId;
+        ApplyTheme();
+    }
+
+    private void CheckoutForm_Load(object sender, EventArgs e)
+    {
+        lblDateTime.Text = "Date: " + DateTime.Now.ToString("yyyy-MM-dd  HH:mm");
+        RenderCheckoutItems();
+        UpdateTotalUI();
+    }
+
+    private void ApplyTheme()
+    {
+        this.BackColor = Color.FromArgb(252, 233, 238);
+
+        btnConfirm.BackColor = Color.FromArgb(170, 65, 90);
+        btnConfirm.ForeColor = Color.White;
+        btnConfirm.FlatStyle = FlatStyle.Flat;
+        btnConfirm.FlatAppearance.BorderSize = 0;
+
+        btnBack.BackColor = Color.FromArgb(244, 180, 195);
+        btnBack.ForeColor = Color.White;
+        btnBack.FlatStyle = FlatStyle.Flat;
+        btnBack.FlatAppearance.BorderSize = 0;
+
+        flpCheckoutItems.BackColor = Color.FromArgb(252, 233, 238);
+    }
+
+    private void RenderCheckoutItems()
+    {
+        flpCheckoutItems.Controls.Clear();
+        flpCheckoutItems.FlowDirection = FlowDirection.TopDown;
+        flpCheckoutItems.WrapContents = false;
+        flpCheckoutItems.AutoScroll = true;
+
+        int cardWidth = flpCheckoutItems.ClientSize.Width - 30;
+        if (cardWidth < 560) cardWidth = 560;
+
+        foreach (var item in CartManager.Items.ToList())
+        {
+            var card = BuildCheckoutItemCard(item.ItemType, item.ItemId);
+            card.Width = cardWidth;
+            flpCheckoutItems.Controls.Add(card);
+        }
+    }
+
+    private Panel BuildCheckoutItemCard(string itemType, int itemId)
+    {
+        var item = CartManager.Items.First(x =>
+            x.ItemType.Equals(itemType, StringComparison.OrdinalIgnoreCase) &&
+            x.ItemId == itemId);
+
+        Panel card = new Panel
+        {
+            Height = 105,
+            BackColor = Color.FromArgb(255, 245, 248),
+            Margin = new Padding(12),
+            Padding = new Padding(10)
+        };
+
+        var grid = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 3,
+            RowCount = 1
+        };
+        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 95));
+        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
+
+        PictureBox pic = new PictureBox
+        {
+            Dock = DockStyle.Fill,
+            BackColor = Color.FromArgb(245, 220, 228),
+            SizeMode = PictureBoxSizeMode.Zoom,
+            Margin = new Padding(0, 0, 10, 0)
+        };
+
+        if (!string.IsNullOrWhiteSpace(item.ImagePath))
+        {
+            string folder = item.ItemType.Equals("Pet", StringComparison.OrdinalIgnoreCase)
+                ? "pets"
+                : "products";
+
+            string fullPath = Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory, "photos", folder, item.ImagePath);
+
+            if (File.Exists(fullPath))
+            {
+                using (var temp = Image.FromFile(fullPath))
+                    pic.Image = new Bitmap(temp);
+            }
+        }
+
+        Panel textPanel = new Panel { Dock = DockStyle.Fill };
+
+        Label lblName = new Label
+        {
+            Dock = DockStyle.Top,
+            Height = 28,
+            Text = item.Name,
+            Font = new Font("Segoe UI", 11.5F, FontStyle.Bold),
+            ForeColor = Color.FromArgb(90, 40, 55)
+        };
+
+        Label lblQty = new Label
+        {
+            Dock = DockStyle.Top,
+            Height = 22,
+            Text = $"Qty: {item.Quantity}   •   Unit: ${item.UnitPrice:0.00}   •   {item.ItemType}",
+            Font = new Font("Segoe UI", 10F),
+            ForeColor = Color.FromArgb(120, 80, 95)
+        };
+
+        textPanel.Controls.Add(lblQty);
+        textPanel.Controls.Add(lblName);
+
+        Panel totalsPanel = new Panel { Dock = DockStyle.Fill };
+        decimal lineTotal = item.UnitPrice * item.Quantity;
+
+        Label lblLineTotal = new Label
+        {
+            Dock = DockStyle.Top,
+            Height = 28,
+            TextAlign = ContentAlignment.MiddleRight,
+            Text = $"${lineTotal:0.00}",
+            Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+            ForeColor = Color.FromArgb(90, 130, 70)
+        };
+
+        totalsPanel.Controls.Add(lblLineTotal);
+
+        grid.Controls.Add(pic, 0, 0);
+        grid.Controls.Add(textPanel, 1, 0);
+        grid.Controls.Add(totalsPanel, 2, 0);
+
+        card.Controls.Add(grid);
+        return card;
+    }
+
+    private void UpdateTotalUI()
+    {
+        decimal total = CartManager.Items.Sum(x => x.UnitPrice * x.Quantity);
+        lblTotal.Text = $"Total: ${total:0.00}";
+    }
+
+    private void btnBack_Click(object sender, EventArgs e)
+    {
+        this.Close();
+    }
+
+    private void btnConfirm_Click(object sender, EventArgs e)
+    {
+        string phone = txtPhone.Text.Trim();
+        string address = txtAddress.Text.Trim();
+        string notes = txtNotes.Text.Trim();
+
+        if (!CartManager.Items.Any())
+        {
+            MessageBox.Show("Cart is empty.");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(phone))
+        {
+            MessageBox.Show("Phone number is required.");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(address))
+        {
+            MessageBox.Show("Address is required.");
+            return;
+        }
+
+        int userId = Session.CurrentUserId;
+        if (userId <= 0)
+        {
+            MessageBox.Show("Session expired. Please log in again.");
+            return;
+        }
+
+        var productItems = CartManager.Items
+            .Where(x => x.ItemType.Equals("Product", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        var petItems = CartManager.Items
+            .Where(x => x.ItemType.Equals("Pet", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        decimal totalAmount = CartManager.Items.Sum(x => x.UnitPrice * x.Quantity);
+
+        try
+        {
+            using (SqlConnection conn = new SqlConnection(DbHelper.ConnectionString))
+            {
+                conn.Open();
+                using (SqlTransaction tx = conn.BeginTransaction())
+                {
+                    try
+                    {
+                        int orderId = 0;
+
+                        if (productItems.Any())
+                        {
+                            orderId = OrderService.PlaceOrder(
+                                userId, phone, address, notes, totalAmount, conn, tx);
+
+                            foreach (var item in productItems)
+                            {
+                                OrderService.AddOrderItem(
+                                    orderId,
+                                    item.ItemId,
+                                    item.Quantity,
+                                    item.UnitPrice,
+                                    conn,
+                                    tx);
+
+                                using (var cmd = new SqlCommand(
+                                    @"UPDATE Products
+                                      SET Quantity = Quantity - @Qty
+                                      WHERE ProductId = @ProductId AND Quantity >= @Qty;", conn, tx))
+                                {
+                                    cmd.Parameters.AddWithValue("@Qty", item.Quantity);
+                                    cmd.Parameters.AddWithValue("@ProductId", item.ItemId);
+
+                                    int affected = cmd.ExecuteNonQuery();
+                                    if (affected == 0)
+                                        throw new Exception($"Product #{item.ItemId} is out of stock.");
+                                }
+                            }
+                        }
+
+                        foreach (var pet in petItems)
+                        {
+                            using (var cmd = new SqlCommand(
+                                @"UPDATE Pets
+                                  SET IsAvailable = 0
+                                  WHERE PetId = @PetId AND IsAvailable = 1;", conn, tx))
+                            {
+                                cmd.Parameters.AddWithValue("@PetId", pet.ItemId);
+
+                                int affected = cmd.ExecuteNonQuery();
+                                if (affected == 0)
+                                    throw new Exception($"Pet #{pet.ItemId} is no longer available.");
+                            }
+                        }
+
+                        tx.Commit();
+
+                        MessageBox.Show(
+                            $"Checkout complete ✅\n\n" +
+                            $"Products: {productItems.Count}\n" +
+                            $"Pets: {petItems.Count}\n" +
+                            $"Total: ${totalAmount:0.00}" +
+                            (productItems.Any() ? $"\nOrder ID: #{orderId}" : ""),
+                            "Success",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Information
+                        );
+
+                        foreach (var it in CartManager.Items.ToList())
+                            CartManager.Remove(it.ItemType, it.ItemId);
+
+                        this.Close();
+                    }
+                    catch
+                    {
+                        tx.Rollback();
+                        throw;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("❌ Failed to checkout: " + ex.Message);
+        }
+    }
+}
+
+////// reciept form 
+
+public partial class ReceiptForm : BaseForm
+{
+    private readonly OrderRepository _repo = new OrderRepository();
+    private readonly int _orderId;
+    private DataTable _itemsTable;
+    private string _customerName = "";
+    private string _dateText = "";
+    private string _timeText = "";
+    private decimal _grandTotal = 0;
+
+    public ReceiptForm(int orderId)
+    {
+        InitializeComponent();
+        _orderId = orderId;
+    }
+
+    private void ReceiptForm_Load(object sender, EventArgs e)
+    {
+        LoadReceiptData();
+    }
+
+    private void LoadReceiptData()
+    {
+        DataTable orders = _repo.GetOrders("All");
+        DataRow[] rows = orders.Select("OrderId = " + _orderId);
+        if (rows.Length == 0)
+        {
+            MessageBox.Show("Order not found.");
+            this.Close();
+            return;
+        }
+
+        DataRow orderRow = rows[0];
+        _customerName = orderRow["CustomerName"].ToString();
+        DateTime createdAt = Convert.ToDateTime(orderRow["CreatedAt"]);
+        _dateText = createdAt.ToString("yyyy-MM-dd");
+        _timeText = createdAt.ToString("hh:mm tt");
+        _grandTotal = Convert.ToDecimal(orderRow["TotalAmount"]);
+        _itemsTable = _repo.GetOrderItems(_orderId);
+
+        dgvReceiptItems.DataSource = _itemsTable;
+
+        if (dgvReceiptItems.Columns["OrderItemId"] != null)
+            dgvReceiptItems.Columns["OrderItemId"].Visible = false;
+        if (dgvReceiptItems.Columns["ProductId"] != null)
+            dgvReceiptItems.Columns["ProductId"].Visible = false;
+        if (dgvReceiptItems.Columns["Barcode"] != null)
+            dgvReceiptItems.Columns["Barcode"].Visible = false;
+        if (dgvReceiptItems.Columns["ProductName"] != null)
+            dgvReceiptItems.Columns["ProductName"].HeaderText = "Product";
+        if (dgvReceiptItems.Columns["Quantity"] != null)
+            dgvReceiptItems.Columns["Quantity"].HeaderText = "Qty";
+        if (dgvReceiptItems.Columns["UnitPrice"] != null)
+            dgvReceiptItems.Columns["UnitPrice"].HeaderText = "Price";
+        if (dgvReceiptItems.Columns["LineTotal"] != null)
+            dgvReceiptItems.Columns["LineTotal"].HeaderText = "Total";
+
+        dgvReceiptItems.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+        dgvReceiptItems.ReadOnly = true;
+        dgvReceiptItems.AllowUserToAddRows = false;
+        dgvReceiptItems.AllowUserToDeleteRows = false;
+        dgvReceiptItems.RowHeadersVisible = false;
+
+        lblOrderId.Text = "Order ID: " + _orderId;
+        lblCustomer.Text = "Customer: " + _customerName;
+        lblDate.Text = "Date: " + _dateText;
+        lblTime.Text = "Time: " + _timeText;
+        lblGrandTotal.Text = "Total: " + _grandTotal.ToString("0.00");
+    }
+
+    private void btnPrintPreview_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            using (PrintPreviewDialog preview = new PrintPreviewDialog())
+            {
+                preview.Document = printDocument1;
+                preview.WindowState = FormWindowState.Maximized;
+                preview.PrintPreviewControl.Zoom = 1;
+                preview.PrintPreviewControl.Columns = 1;
+                preview.PrintPreviewControl.Rows = 1;
+                preview.ShowDialog(this);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Preview error: " + ex.Message);
+        }
+    }
+
+    private void btnPrint_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            printDialog1.Document = printDocument1;
+            if (printDialog1.ShowDialog() == DialogResult.OK)
+            {
+                printDocument1.Print();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Printing error: " + ex.Message);
+        }
+    }
+
+    private void printDocument1_PrintPage(object sender, PrintPageEventArgs e)
+    {
+        Graphics g = e.Graphics;
+        using (Font titleFont = new Font("Candara", 20, FontStyle.Bold))
+        using (Font subtitleFont = new Font("Segoe UI", 10, FontStyle.Italic))
+        using (Font normalFont = new Font("Segoe UI", 10, FontStyle.Regular))
+        using (Font boldFont = new Font("Segoe UI", 10, FontStyle.Bold))
+        {
+            int left = 80;
+            int y = 40;
+
+            g.DrawString("PetWell Receipt", titleFont, Brushes.Black, left, y);
+            y += 35;
+            g.DrawString("Everything your pet needs, in one place.", subtitleFont, Brushes.Black, left, y);
+            y += 30;
+            g.DrawString("PetWell", boldFont, Brushes.Black, left, y);
+            y += 22;
+            g.DrawString("Sulaimaniyah, Iraq", normalFont, Brushes.Black, left, y);
+            y += 20;
+            g.DrawString("Phone: 07XX XXX XXX", normalFont, Brushes.Black, left, y);
+            y += 20;
+            g.DrawString("Email: supportpetwell@gmail.com", normalFont, Brushes.Black, left, y);
+            y += 30;
+            g.DrawLine(Pens.Black, left, y, 700, y);
+            y += 20;
+            g.DrawString("Order ID: " + _orderId, boldFont, Brushes.Black, left, y);
+            y += 25;
+            g.DrawString("Customer: " + _customerName, normalFont, Brushes.Black, left, y);
+            y += 25;
+            g.DrawString("Date: " + _dateText, normalFont, Brushes.Black, left, y);
+            y += 25;
+            g.DrawString("Time: " + _timeText, normalFont, Brushes.Black, left, y);
+            y += 35;
+            g.DrawLine(Pens.Black, left, y, 700, y);
+            y += 15;
+            g.DrawString("Product", boldFont, Brushes.Black, left, y);
+            g.DrawString("Qty", boldFont, Brushes.Black, 400, y);
+            g.DrawString("Price", boldFont, Brushes.Black, 470, y);
+            g.DrawString("Total", boldFont, Brushes.Black, 570, y);
+            y += 25;
+            g.DrawLine(Pens.Black, left, y, 700, y);
+            y += 15;
+
+            foreach (DataRow row in _itemsTable.Rows)
+            {
+                string productName = row["ProductName"].ToString();
+                string qty = row["Quantity"].ToString();
+                string unitPrice = Convert.ToDecimal(row["UnitPrice"]).ToString("0.00");
+                string lineTotal = Convert.ToDecimal(row["LineTotal"]).ToString("0.00");
+
+                g.DrawString(productName, normalFont, Brushes.Black, left, y);
+                g.DrawString(qty, normalFont, Brushes.Black, 400, y);
+                g.DrawString(unitPrice, normalFont, Brushes.Black, 470, y);
+                g.DrawString(lineTotal, normalFont, Brushes.Black, 570, y);
+                y += 25;
+            }
+
+            y += 10;
+            g.DrawLine(Pens.Black, left, y, 700, y);
+            y += 20;
+            g.DrawString("Grand Total: " + _grandTotal.ToString("0.00"), boldFont, Brushes.Black, 500, y);
+            y += 40;
+            g.DrawString("Thank you for shopping with us!", boldFont, Brushes.Black, left, y);
+            y += 25;
+            g.DrawString("PetWell - Everything your pet needs.", normalFont, Brushes.Black, left, y);
+        }
+    }
+}
+
+
+
+////// profil form
+
+public partial class ProfileForm : Form
+{
+    private readonly ReportRepository _reportRepo = new ReportRepository();
+    private readonly UserProfileRepository _repo = new UserProfileRepository();
+
+    public ProfileForm()
+    {
+        InitializeComponent();
+    }
+
+    private void btnSettings_Click(object sender, EventArgs e)
+    {
+        cmsSettings.Show(btnSettings, 0, btnSettings.Height);
+    }
+
+    private void miAbout_Click(object sender, EventArgs e)
+    {
+        MessageBox.Show(
+            "PetWell\nVersion 1.0\n\nEverything your pet needs, in one place.",
+            "About PetWell",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information
+        );
+    }
+
+    private void miReport_Click(object sender, EventArgs e)
+    {
+        using (var frm = new ReportForm(txtEmail.Text.Trim(), txtPhone.Text.Trim()))
+        {
+            frm.ShowDialog();
+        }
+    }
+
+    private void miLogout_Click(object sender, EventArgs e)
+    {
+        var confirm = MessageBox.Show(
+            "Are you sure you want to log out?",
+            "Log out",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Question
+        );
+
+        if (confirm != DialogResult.Yes) return;
+
+        Session.CurrentUserId = 0;
+        Session.CurrentRole = null;
+        Session.IsSuperAdmin = false;
+        Session.CurrentEmail = null;
+        Session.CurrentName = null;
+
+        var loginForm = new LoginForm();
+        loginForm.Show();
+        this.Close();
+    }
+
+    private void btnBack_Click(object sender, EventArgs e)
+    {
+        HomePage homePage = new HomePage();
+        homePage.Show();
+        this.Close();
+    }
+
+    private void LoadUserInfo(int userId)
+    {
+        var row = _repo.GetUserById(userId);
+        if (row == null)
+        {
+            MessageBox.Show("User not found.");
+            return;
+        }
+
+        txtName.Text = row["Name"]?.ToString();
+        txtEmail.Text = row["Email"]?.ToString();
+        txtPhone.Text = row["PhoneNumber"]?.ToString();
+        txtPassword.UseSystemPasswordChar = true;
+        txtPassword.Text = row["Password"]?.ToString();
+    }
+
+    private void CheckReportReplies()
+    {
+        string email = txtEmail.Text.Trim();
+        if (string.IsNullOrWhiteSpace(email)) return;
+
+        bool hasReply = _reportRepo.HasRepliedReport(email);
+
+        if (hasReply)
+        {
+            MessageBox.Show(
+                "We saw your report. We will contact you as soon as possible.",
+                "Report Update",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            );
+        }
+    }
+
+    private void ProfileForm_Load(object sender, EventArgs e)
+    {
+        int userId = Session.CurrentUserId;
+
+        if (userId <= 0)
+        {
+            MessageBox.Show("Session expired. Please log in again.");
+            return;
+        }
+
+        LoadUserInfo(userId);
+        CheckReportReplies();
+    }
+}
+
+
+
+
+///////////report form 
+
+public partial class ReportForm : BaseForm
+{
+    private readonly ReportRepository _repo = new ReportRepository();
+    private readonly string _email;
+    private readonly string _phone;
+
+    public ReportForm(string email, string phone)
+    {
+        InitializeComponent();
+        _email = email ?? "";
+        _phone = phone ?? "";
+
+        btnSend.Click -= btnSend_Click;
+        btnSend.Click += btnSend_Click;
+
+        this.Load += ReportForm_Load;
+    }
+
+    private void ReportForm_Load(object sender, EventArgs e)
+    {
+        cmbReason.Items.Clear();
+        cmbReason.Items.AddRange(new object[]
+        {
+            "Bug / App not working",
+            "Wrong info",
+            "Payment / Checkout issue",
+            "Suggestion",
+            "Other"
+        });
+        cmbReason.SelectedIndex = 0;
+
+        txtEmail.Text = _email;
+        txtPhone.Text = _phone;
+    }
+
+    private void btnSend_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            string email = txtEmail.Text.Trim();
+            string phone = txtPhone.Text.Trim();
+            string reason = cmbReason.SelectedItem?.ToString() ?? "Other";
+            string message = txtMessage.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                MessageBox.Show("Email is required.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                MessageBox.Show("Please write your report.");
+                return;
+            }
+
+            int reportId = _repo.CreateReport(new Report
+            {
+                ReporterEmail = email,
+                ReporterPhone = string.IsNullOrWhiteSpace(phone) ? null : phone,
+                TargetType = "System",
+                TargetId = 0,
+                Reason = reason,
+                Description = message
+            });
+
+            MessageBox.Show($"Report sent ✅ (ID #{reportId})");
+            this.Close();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Failed to send report:\n" + ex.Message);
+        }
+    }
+
+    private void btnCancel_Click(object sender, EventArgs e)
+    {
+        this.Close();
+    }
+
+    private void btnBack_Click(object sender, EventArgs e)
+    {
+        ProfileForm frm = new ProfileForm();
+        frm.Show();
+        this.Close();
+    }
+}
+
+
+DONE...
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
